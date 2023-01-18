@@ -72,125 +72,17 @@ async function farm_cheriFarm2() {
 //         }
 //     })()
 // }
-
-
-
-// async function farm_breedPayapa() {
-//     let BT = BerryType;
-//     await farm_breeding([
-//         BT.Wiki, BT.None, BT.Cornn, BT.None, BT.Wiki,
-//         BT.Bluk, BT.None, BT.Pamtre, BT.None, BT.Bluk,
-//         BT.None, BT.None, BT.None, BT.None, BT.None,
-//         BT.Cornn, BT.None, BT.Wiki, BT.None, BT.Cornn,
-//         BT.Pamtre, BT.None, BT.Bluk, BT.None, BT.Pamtre,
-//     ]);
-
-//     // let waccan = [
-//     //     BT.Iapapa,  BT.None,    BT.Pinap,   BT.None,    BT.Iapapa,
-//     //     BT.Qualot,  BT.None,    BT.Grepa,   BT.None,    BT.Qualot,
-//     //     BT.None,    BT.None,    BT.None,    BT.None,    BT.None,
-//     //     BT.Iapapa,  BT.None,    BT.Pinap,   BT.None,    BT.Iapapa,
-//     //     BT.Qualot,  BT.None,    BT.Grepa,   BT.None,    BT.Qualot,
-//     // ];
-
-// }
-
-// async function farm_breeding(berriesData) {
-//     // BERRY LAYOUT
-//     // | 0| 1| 2| 3| 4|
-//     // | 5| 6| 7| 8| 9|
-//     // |10|11|12|13|14|
-//     // |15|16|17|18|19|
-//     // |20|21|22|23|24|
-//     let farms = App.game.farming;
-//     let BT = BerryType;
-
-//     await farm_stop();
-//     currentFarm = (async () => {
-//         while (true) {
-//             if (!autoFarm) { break; }
-//             for (index = 0; index < berriesData.length; index++) {
-//                 let plot = App.game.farming.plotList[index];
-//                 if (!plot.isUnlocked) { continue; }
-//                 if (berriesData[index] == BT.None) { farms.harvest(index, false); continue; }
-//                 if (plot.isEmpty()) { farms.plant(index, berriesData[index], false); continue; }
-
-//                 let currentBerry = plot.berry;
-//                 if (currentBerry != berriesData[index] || plot.age >= farms.berryData[currentBerry].growthTime[4]) {
-//                     farms.harvest(index, false);
-//                     farms.plant(index, berriesData[index], false);
-//                 }
-//             }
-//             await new Promise(resolve => setTimeout(resolve, 100));
-//         }
-//     })();
-// }
-
-
-// async function farm_4xBreeding() {
-//     let BT = BerryType;
-//     let O = BT.None
-//     let a = BT.Iapapa;
-//     let b = BT.Pinap;
-//     let c = BT.Qualot;
-//     let d = BT.Grepa;
-//     let layout = [
-//         a, O, b, O, a,
-//         c, O, d, O, c,
-//         O, O, O, O, O,
-//         b, O, a, O, b,
-//         d, O, c, O, d,
-//     ];
-
-
-//     let berryData = App.game.farming.berryData;
-
-//     // console.log(berryData[a]);
-//     // console.log(berryData[b]);
-//     // console.log(berryData[c]);
-//     // console.log(berryData[d]);
-
-//     console.log(
-//         [a,b,c,d]
-//         .map(x=>berryData[x])
-//         .map(x=>x.growthTime[3])
-//         .reduce((x,y)=>x>y?x:y)
-//     )
-
-// }
-// farm_4xBreeding()
-
-    // let farms = App.game.farming;
-
-    // await farm_stop();
-    // currentFarm = (async () => {
-    //     while (true) {
-    //         if (!autoFarm) { break; }
-    //         for (index = 0; index < berriesData.length; index++) {
-    //             let plot = App.game.farming.plotList[index];
-    //             if (!plot.isUnlocked) { continue; }
-    //             if (berriesData[index] == BT.None) { farms.harvest(index, false); continue; }
-    //             if (plot.isEmpty()) { farms.plant(index, berriesData[index], false); continue; }
-
-    //             let currentBerry = plot.berry;
-    //             if (currentBerry != berriesData[index] || plot.age >= farms.berryData[currentBerry].growthTime[4]) {
-    //                 farms.harvest(index, false);
-    //                 farms.plant(index, berriesData[index], false);
-    //             }
-    //         }
-    //         await new Promise(resolve => setTimeout(resolve, 100));
-    //     }
-    // })();
-function dung_map () {
-    let board = DungeonRunner.map.board()[0];
-    board.forEach(x => {
-        console.log(x
-            .map(a => { return a.type() })
-            .map(b => { let arr = ["O", "S", " ", "_", "E"]; return arr[b] })
-            .reduce((p, n) => { return p + n })
-        )
-    });
-
+function dung_map() {
+    for (let board of DungeonRunner.map.board()) {
+        board.forEach(x => {
+            console.log(x
+                .map(a => { return a.type() })
+                .map(b => { let arr = ["O", "S", " ", "_", "E"]; return arr[b] })
+                .reduce((p, n) => { return p + n })
+            )
+        });
+        console.log('------------');
+    }
 }
 
 function dung_startMap() {
@@ -209,29 +101,31 @@ async function dung_stop() {
 
 async function dung_single() {
     DungeonRunner.initializeDungeon(player.town().dungeon);
-    let board = DungeonRunner.map.board()[0];
-    let ind = new Array(board.length).fill(1).map((_, i) => i)
-        .flatMap((y) => new Array(board.length).fill(1).map((_, i) => [y, i]));
-    let dest = ind.filter(c => board[c[0]][c[1]].type() == 4)[0];
 
-    while (DungeonRunner.map.playerPosition().y != dest[0]) {
-        DungeonRunner.map.moveUp();
-        DungeonRunner.handleClick();
-        await new Promise(resolve => setTimeout(resolve, 1));
-    }
-    while (DungeonRunner.map.playerPosition().x > dest[1]) {
-        DungeonRunner.map.moveLeft();
-        DungeonRunner.handleClick();
-        await new Promise(resolve => setTimeout(resolve, 1));
-    }
-    while (DungeonRunner.map.playerPosition().x < dest[1]) {
-        DungeonRunner.map.moveRight();
-        DungeonRunner.handleClick();
-        await new Promise(resolve => setTimeout(resolve, 1));
-    }
-    while (!DungeonRunner.dungeonFinished()) { 
-        DungeonRunner.handleClick();
-        await new Promise(resolve => setTimeout(resolve, 1)); 
+    for (let board of DungeonRunner.map.board()) {
+        let ind = new Array(board.length).fill(1).map((_, i) => i)
+            .flatMap((y) => new Array(board.length).fill(1).map((_, i) => [y, i]));
+        let dest = ind.filter(c => board[c[0]][c[1]].type() == 4)[0];
+
+        while (DungeonRunner.map.playerPosition().y != dest[0]) {
+            DungeonRunner.map.moveUp();
+            DungeonRunner.handleClick();
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
+        while (DungeonRunner.map.playerPosition().x > dest[1]) {
+            DungeonRunner.map.moveLeft();
+            DungeonRunner.handleClick();
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
+        while (DungeonRunner.map.playerPosition().x < dest[1]) {
+            DungeonRunner.map.moveRight();
+            DungeonRunner.handleClick();
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
+        while (!DungeonRunner.dungeonFinished()) {
+            DungeonRunner.handleClick();
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
     }
 }
 
@@ -256,109 +150,91 @@ async function dung_times(times) {
     })(times);
 }
 
-async function dung_clean_times(times) {
-    await dung_stop();
-
-    let impl = async()=>{
-        DungeonRunner.initializeDungeon(player.town().dungeon);
-        let boards = DungeonRunner.map.board();
-    
-        for (let floor = 0; floor < boards.length; floor++) {
-            let board = boards[floor];
-            let boardSize = board.length;
-    
-            let clickNotBoss = async () => {
-                if (DungeonRunner.map.currentTile().type() == 2 ||
-                    DungeonRunner.map.currentTile().type() == 3) {
-                    DungeonRunner.handleClick();
-                    await new Promise(resolve => setTimeout(resolve, 1));
-                }
-            }
-    
-            // go all the way right --> {size-1,size-1}
-            while (DungeonRunner.map.playerPosition().x < boardSize - 1) {
-                await clickNotBoss();
-                DungeonRunner.map.moveRight();
-                await new Promise(resolve => setTimeout(resolve, 1));
-            }
-            // starting {5,5} cell 
-    
-            let x = boardSize - 1; // x=5
-            while (DungeonRunner.map.playerPosition().x >= 0) {
-    
-                // go to bottom of target col
-                while (DungeonRunner.map.playerPosition().y != boardSize - 1) {
-                    await clickNotBoss();
-                    DungeonRunner.map.moveToCoordinates(x, boardSize - 1, floor);
-                    await new Promise(resolve => setTimeout(resolve, 1));
-                }
-                x--;
-    
-                // go toward top
-                while (DungeonRunner.map.playerPosition().y > 0) {
-                    // handle cell
-                    await clickNotBoss();
-                    DungeonRunner.map.moveUp();
-                    await new Promise(resolve => setTimeout(resolve, 1));
-                }
-    
-                if (DungeonRunner.map.playerPosition().x == 0 &&
-                    DungeonRunner.map.playerPosition().y == 0) {
-                    await clickNotBoss();
-                    break;
-                }
-            }
-    
-    
-            let bossX = boardSize-1;
-            let bossY = boardSize-1;
-            while (bossX > 0) {
-                bossY = boardSize-1;
-                while (bossY > 0) {
-                    if (board[bossY][bossX].type() == 4) { break; }
-                    bossY--;
-                }
-                if (board[bossY][bossX].type() == 4) { break; }
-                bossX--;
-            }
-    
-            while (
-                DungeonRunner.map.playerPosition().x != bossX ||
-                DungeonRunner.map.playerPosition().y != bossY
-            ) {
-                DungeonRunner.map.moveToCoordinates(bossX, bossY, floor);
-                await clickNotBoss();
-                await new Promise(resolve => setTimeout(resolve, 1));
-            }
-    
-            while (!DungeonRunner.dungeonFinished()) { 
-                DungeonRunner.handleClick();
-                await new Promise(resolve => setTimeout(resolve, 1)); 
-            }
-    
+async function dung_clean(){
+    let clickNotBoss = async () => {
+        if (DungeonRunner.map.currentTile().type() == 2 ||
+            DungeonRunner.map.currentTile().type() == 3) {
+            DungeonRunner.handleClick();
+            await new Promise(resolve => setTimeout(resolve, 1));
         }
     }
+    let getPosition = ()=>{
+        return DungeonRunner.map.playerPosition();
+    }
+
+    DungeonRunner.initializeDungeon(player.town().dungeon);
+    let boards = DungeonRunner.map.board();
+      
+    for (let floor = 0; floor < boards.length; floor++) {
+        let board = boards[floor];
+        let boardSize = board.length;
+
+        // go all the way right --> {size-1,size-1}
+        while (getPosition().x < boardSize - 1) {
+            await clickNotBoss();
+            DungeonRunner.map.moveRight();
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
 
 
+        let x = boardSize - 1;
+        while (getPosition().x >= 0) {
+
+            // go to bottom of target col
+            while (getPosition().y != boardSize - 1) {
+                await clickNotBoss();
+                DungeonRunner.map.moveToCoordinates(x, boardSize - 1, floor);
+                await new Promise(resolve => setTimeout(resolve, 1));
+            }
+            x--;
+
+            // go toward top
+            while (getPosition().y > 0) {
+                await clickNotBoss();
+                DungeonRunner.map.moveUp();
+                await new Promise(resolve => setTimeout(resolve, 1));
+            }
+
+            if (getPosition().x == 0 && getPosition().y == 0) {
+                await clickNotBoss();
+                break;
+            }
+        }
+
+        let bossX = 0;
+        let bossY = 0;
+
+        for (let bossXin = 0; bossXin < boardSize; bossXin++) {
+            for (let bossYin = 0; bossYin < boardSize; bossYin++) {
+                bossX = bossXin; bossY = bossYin;
+                if (board[bossY][bossX].type() == 4) { break; }
+            }
+            if (board[bossY][bossX].type() == 4) { break; }
+        }
+
+        while ( getPosition().x != bossX || getPosition().y != bossY ) {
+            DungeonRunner.map.moveToCoordinates(bossX, bossY, floor);
+            await clickNotBoss();
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
+
+        while (!DungeonRunner.dungeonFinished() && getPosition().floor == floor) {
+            DungeonRunner.handleClick();
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
+    }
+}
+
+async function dung_clean_times(times) {
+    await dung_stop();
 
     currentDung = (async (times) => {
         for (let i = 0; i < times; i++) {
             if (!autoDung) { break; }
-            await impl();
+            await dung_clean();
         }
     })(times);
 }
-
-
-// async function dung_region(target) {
-//     await dung_stop();
-//     currentDung = (async (times) => {
-//         while (true) {
-//             if (!autoDung) { break; }
-//             await dung_single();
-//         }
-//     })(times);
-// }
 let currentHatch = (async () => { })();
 let autoHatch = true;
 
