@@ -28,6 +28,15 @@ async function shop_start() {
                 }
             }
 
+            for (let i = 3; i <= 8; i++) {
+                while (isBasePrice(ShopHandler.shopObservable().items,i) &&
+                player.itemList[ShopHandler.shopObservable().items[i].name]() < 1000
+                ) {
+                    ShopHandler.setSelected(i);
+                    ShopHandler.buyItem();
+                }
+            }
+
             for (let i = 0; i < 5; i++) {
                 ShopHandler.showShop(SinnohBerryMaster);
                 while(isBasePrice(ShopHandler.shopObservable().items,i) &&

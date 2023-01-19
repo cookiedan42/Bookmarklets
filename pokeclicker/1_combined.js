@@ -161,7 +161,29 @@ async function dung_clean(){
     let getPosition = ()=>{
         return DungeonRunner.map.playerPosition();
     }
+    let itemIfLess = async (name)=>{
+        let timeBase = player.effectTimer[name]();
+        let blockNo = timeBase.split(":").length;
+        if (timeBase == ""){blockNo=0;}
+    
+        for (let index = blockNo; index < 3; index++) {
+            timeBase = "00:"+timeBase;        
+        }
+        if (timeBase.endsWith(":")){
+            timeBase = timeBase.slice(0,-1);
+        }
+    
+        let target = new Date("1970-01-01T" + timeBase +"+00:00");
+        target = target.getTime()/1000;
+    
+        if (target <= 60){
+            ItemHandler.useItem(name,2);
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
+    }
 
+
+    await itemIfLess("Dowsing_machine");
     DungeonRunner.initializeDungeon(player.town().dungeon);
     let boards = DungeonRunner.map.board();
       
@@ -429,6 +451,15 @@ async function shop_start() {
             for (let i = 0; i <= 2; i++) {
                 while (isBasePrice(ShopHandler.shopObservable().items,i) &&
                 App.game.pokeballs.pokeballs[i].quantity() < 100000
+                ) {
+                    ShopHandler.setSelected(i);
+                    ShopHandler.buyItem();
+                }
+            }
+
+            for (let i = 3; i <= 8; i++) {
+                while (isBasePrice(ShopHandler.shopObservable().items,i) &&
+                player.itemList[ShopHandler.shopObservable().items[i].name]() < 1000
                 ) {
                     ShopHandler.setSelected(i);
                     ShopHandler.buyItem();
