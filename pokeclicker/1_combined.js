@@ -53,7 +53,9 @@ async function farm_cheriFarm2() {
 
 
 
-
+//App.game.farming.plotList[0].berryData
+//App.game.farming.plotList[0].formattedTimeLeft()
+//App.game.farming.plotList[0].lastPlanted
 
 // async function farm_loopingFarm() {
 //     await farm_stop();
@@ -184,6 +186,8 @@ async function dung_clean(){
 
 
     await itemIfLess("Dowsing_machine");
+    await itemIfLess("xAttack");
+    await itemIfLess("xClick");
     DungeonRunner.initializeDungeon(player.town().dungeon);
     let boards = DungeonRunner.map.board();
       
@@ -257,6 +261,22 @@ async function dung_clean_times(times) {
         }
     })(times);
 }
+
+async function frontier_farm(){
+    await dung_stop();
+    currentDung = (async ()=>{
+        while(true){
+            if (!autoDung) { break; }
+            if (!BattleFrontierRunner.started()){
+                BattleFrontierRunner.start(true);
+            }
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        };
+    })
+
+}
+
+
 let currentHatch = (async () => { })();
 let autoHatch = true;
 

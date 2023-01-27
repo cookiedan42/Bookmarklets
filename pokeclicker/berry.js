@@ -54,7 +54,9 @@ async function farm_cheriFarm2() {
 
 
 
-
+//App.game.farming.plotList[0].berryData
+//App.game.farming.plotList[0].formattedTimeLeft()
+//App.game.farming.plotList[0].lastPlanted
 
 // async function farm_loopingFarm() {
 //     await farm_stop();
