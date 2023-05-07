@@ -3,7 +3,7 @@ function dung_map() {
         board.forEach(x => {
             console.log(x
                 .map(a => { return a.type() })
-                .map(b => { let arr = ["O", "S", " ", "_", "E"]; return arr[b] })
+                .map(b => { let arr = ["O", "S", " ", "_", "B","L"]; return arr[b] })
                 .reduce((p, n) => { return p + n })
             )
         });
@@ -26,29 +26,33 @@ async function dung_stop() {
 }
 
 async function dung_single() {
-    DungeonRunner.initializeDungeon(player.town().dungeon);
+    let getPosition = ()=>{
+        return DungeonRunner.map.playerPosition();
+    }
 
+    DungeonRunner.initializeDungeon(player.town().dungeon);
+    
     for (let board of DungeonRunner.map.board()) {
+        let currentFloor = getPosition().floor;
         let ind = new Array(board.length).fill(1).map((_, i) => i)
             .flatMap((y) => new Array(board.length).fill(1).map((_, i) => [y, i]));
-        let dest = ind.filter(c => board[c[0]][c[1]].type() == 4)[0];
-
-        while (DungeonRunner.map.playerPosition().y != dest[0]) {
+        let dest = ind.filter(c => board[c[0]][c[1]].type() >= 4)[0];
+        while (DungeonRunner.map.playerPosition().y != dest[0] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveUp();
             DungeonRunner.handleClick();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
-        while (DungeonRunner.map.playerPosition().x > dest[1]) {
+        while (DungeonRunner.map.playerPosition().x > dest[1] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveLeft();
             DungeonRunner.handleClick();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
-        while (DungeonRunner.map.playerPosition().x < dest[1]) {
+        while (DungeonRunner.map.playerPosition().x < dest[1] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveRight();
             DungeonRunner.handleClick();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
-        while (!DungeonRunner.dungeonFinished()) {
+        while (!DungeonRunner.dungeonFinished() && currentFloor== getPosition().floor) {
             DungeonRunner.handleClick();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
@@ -157,9 +161,9 @@ async function dung_clean(){
         for (let bossXin = 0; bossXin < boardSize; bossXin++) {
             for (let bossYin = 0; bossYin < boardSize; bossYin++) {
                 bossX = bossXin; bossY = bossYin;
-                if (board[bossY][bossX].type() == 4) { break; }
+                if (board[bossY][bossX].type() >= 4) { break; }
             }
-            if (board[bossY][bossX].type() == 4) { break; }
+            if (board[bossY][bossX].type() >= 4) { break; }
         }
 
         while ( getPosition().x != bossX || getPosition().y != bossY ) {
@@ -200,4 +204,15 @@ async function frontier_farm(){
 
 }
 
-
+async function temp_fight(){
+    await dung_stop();
+    currentDung = (async ()=>{
+        while(true){
+            if (!autoDung) { break; }
+            if (TemporaryBattleBattle.enemyPokemon().health()>0){
+                TemporaryBattleBattle.clickAttack();
+            }
+            await new Promise(resolve => setTimeout(resolve, 10));
+        };
+    })
+}

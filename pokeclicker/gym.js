@@ -1,6 +1,6 @@
 let currentGym = (async () => { })();
 let autoGym = true;
-let GymTick = 100;
+let GymTick = 10;
 
 async function gym_stop() {
     autoGym = false;
@@ -13,7 +13,12 @@ async function gym_times(times) {
     currentGym = (async (times) => {
         while (autoGym && times-- > 0){
             GymRunner.startGym(GymList[player.town().name], false, false);
-            while (GymRunner.running()) { await new Promise(resolve => setTimeout(resolve, GymTick)); }
+            while (GymRunner.running()) { 
+                if (GymBattle.enemyPokemon().health()>0){
+                    GymBattle.clickAttack();
+                }
+                await new Promise(resolve => setTimeout(resolve, GymTick)); 
+            }
         }
     })(times);
 }
@@ -27,7 +32,11 @@ async function gym_until(target) {
             let badgeNo = GameConstants.getGymIndex(gym.town);
             while (autoGym && App.game.statistics.gymsDefeated[badgeNo]() < target){
                 GymRunner.startGym(GymList[gym.town], false, false); 
-                while (GymRunner.running()) { await new Promise(resolve => setTimeout(resolve, GymTick));}
+                while (GymRunner.running()) {
+                    if (GymBattle.enemyPokemon().health()>0){
+                        GymBattle.clickAttack();
+                    } 
+                    await new Promise(resolve => setTimeout(resolve, GymTick));}
             }
         }
     })(target);
@@ -49,7 +58,10 @@ async function gym_region(target) {
                 if (!autoGym) {break;}
                 GymRunner.startGym(gymArr[index], false, false);
                 while (GymBattle.index() < Math.min(6,GymBattle.gym.pokemons.length)) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    if (GymBattle.enemyPokemon().health()>0){
+                        GymBattle.clickAttack();
+                    }
+                    await new Promise(resolve => setTimeout(resolve, GymTick));
                 }
             }
         }

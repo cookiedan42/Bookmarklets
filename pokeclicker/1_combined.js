@@ -79,7 +79,7 @@ function dung_map() {
         board.forEach(x => {
             console.log(x
                 .map(a => { return a.type() })
-                .map(b => { let arr = ["O", "S", " ", "_", "E"]; return arr[b] })
+                .map(b => { let arr = ["O", "S", " ", "_", "B","L"]; return arr[b] })
                 .reduce((p, n) => { return p + n })
             )
         });
@@ -102,29 +102,33 @@ async function dung_stop() {
 }
 
 async function dung_single() {
-    DungeonRunner.initializeDungeon(player.town().dungeon);
+    let getPosition = ()=>{
+        return DungeonRunner.map.playerPosition();
+    }
 
+    DungeonRunner.initializeDungeon(player.town().dungeon);
+    
     for (let board of DungeonRunner.map.board()) {
+        let currentFloor = getPosition().floor;
         let ind = new Array(board.length).fill(1).map((_, i) => i)
             .flatMap((y) => new Array(board.length).fill(1).map((_, i) => [y, i]));
-        let dest = ind.filter(c => board[c[0]][c[1]].type() == 4)[0];
-
-        while (DungeonRunner.map.playerPosition().y != dest[0]) {
+        let dest = ind.filter(c => board[c[0]][c[1]].type() >= 4)[0];
+        while (DungeonRunner.map.playerPosition().y != dest[0] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveUp();
             DungeonRunner.handleClick();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
-        while (DungeonRunner.map.playerPosition().x > dest[1]) {
+        while (DungeonRunner.map.playerPosition().x > dest[1] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveLeft();
             DungeonRunner.handleClick();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
-        while (DungeonRunner.map.playerPosition().x < dest[1]) {
+        while (DungeonRunner.map.playerPosition().x < dest[1] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveRight();
             DungeonRunner.handleClick();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
-        while (!DungeonRunner.dungeonFinished()) {
+        while (!DungeonRunner.dungeonFinished() && currentFloor== getPosition().floor) {
             DungeonRunner.handleClick();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
@@ -233,9 +237,9 @@ async function dung_clean(){
         for (let bossXin = 0; bossXin < boardSize; bossXin++) {
             for (let bossYin = 0; bossYin < boardSize; bossYin++) {
                 bossX = bossXin; bossY = bossYin;
-                if (board[bossY][bossX].type() == 4) { break; }
+                if (board[bossY][bossX].type() >= 4) { break; }
             }
-            if (board[bossY][bossX].type() == 4) { break; }
+            if (board[bossY][bossX].type() >= 4) { break; }
         }
 
         while ( getPosition().x != bossX || getPosition().y != bossY ) {
@@ -276,7 +280,18 @@ async function frontier_farm(){
 
 }
 
-
+async function temp_fight(){
+    await dung_stop();
+    currentDung = (async ()=>{
+        while(true){
+            if (!autoDung) { break; }
+            if (TemporaryBattleBattle.enemyPokemon().health()>0){
+                TemporaryBattleBattle.clickAttack();
+            }
+            await new Promise(resolve => setTimeout(resolve, 10));
+        };
+    })
+}
 let currentHatch = (async () => { })();
 let autoHatch = true;
 
@@ -379,20 +394,25 @@ async function route_autoFightLimit(target) {
     })(target);
 }
 
-async function clickAttack(times) {
-    while (times > 0){
-        times --;
-        Battle.clickAttack()
-        await new Promise(resolve => setTimeout(resolve, 1)); 
-    }
+async function clickAttack() {
+    await route_stop();
+    currentRoute = (async () => {
+       while(true){
+            if (!autoRoute) { break; }
+            Battle.clickAttack()
+            await new Promise(resolve => setTimeout(resolve, 1)); 
+       }
+    })();
 }
+
+
 
 function route_10k() { route_autoFightLimit(10000); }
 function route_1k() { route_autoFightLimit(1000); }
 function route_100() { route_autoFightLimit(100); }
 let currentGym = (async () => { })();
 let autoGym = true;
-let GymTick = 100;
+let GymTick = 10;
 
 async function gym_stop() {
     autoGym = false;
@@ -405,7 +425,12 @@ async function gym_times(times) {
     currentGym = (async (times) => {
         while (autoGym && times-- > 0){
             GymRunner.startGym(GymList[player.town().name], false, false);
-            while (GymRunner.running()) { await new Promise(resolve => setTimeout(resolve, GymTick)); }
+            while (GymRunner.running()) { 
+                if (GymBattle.enemyPokemon().health()>0){
+                    GymBattle.clickAttack();
+                }
+                await new Promise(resolve => setTimeout(resolve, GymTick)); 
+            }
         }
     })(times);
 }
@@ -419,7 +444,11 @@ async function gym_until(target) {
             let badgeNo = GameConstants.getGymIndex(gym.town);
             while (autoGym && App.game.statistics.gymsDefeated[badgeNo]() < target){
                 GymRunner.startGym(GymList[gym.town], false, false); 
-                while (GymRunner.running()) { await new Promise(resolve => setTimeout(resolve, GymTick));}
+                while (GymRunner.running()) {
+                    if (GymBattle.enemyPokemon().health()>0){
+                        GymBattle.clickAttack();
+                    } 
+                    await new Promise(resolve => setTimeout(resolve, GymTick));}
             }
         }
     })(target);
@@ -441,7 +470,10 @@ async function gym_region(target) {
                 if (!autoGym) {break;}
                 GymRunner.startGym(gymArr[index], false, false);
                 while (GymBattle.index() < Math.min(6,GymBattle.gym.pokemons.length)) {
-                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    if (GymBattle.enemyPokemon().health()>0){
+                        GymBattle.clickAttack();
+                    }
+                    await new Promise(resolve => setTimeout(resolve, GymTick));
                 }
             }
         }

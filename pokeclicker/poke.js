@@ -59,13 +59,18 @@ async function route_autoFightLimit(target) {
     })(target);
 }
 
-async function clickAttack(times) {
-    while (times > 0){
-        times --;
-        Battle.clickAttack()
-        await new Promise(resolve => setTimeout(resolve, 1)); 
-    }
+async function clickAttack() {
+    await route_stop();
+    currentRoute = (async () => {
+       while(true){
+            if (!autoRoute) { break; }
+            Battle.clickAttack()
+            await new Promise(resolve => setTimeout(resolve, 1)); 
+       }
+    })();
 }
+
+
 
 function route_10k() { route_autoFightLimit(10000); }
 function route_1k() { route_autoFightLimit(1000); }
