@@ -1,21 +1,46 @@
 let currentHatch = (async () => { })();
 let autoHatch = true;
 
+
+/*
+    App.game.breeding.addPokemonToHatchery(PokedexHelper.getList().filter(p=>p.id == 113)[0])
+
+    const egg = this.createEgg(pokemon.id);
+    const success = this.gainEgg(egg, eggSlot);
+
+    if (
+        BreedingController.regionalAttackDebuff() > -1 
+    && PokemonHelper.calcNativeRegion(pokemon.name) !== BreedingController.regionalAttackDebuff()
+    ) {
+        return App.game.party.getRegionAttackMultiplier();
+    }
+
+
+*/
+
 async function hatch_stop() {
     autoHatch = false;
     await currentHatch;
     autoHatch = true;
 }
 
-hatch_start= async()=> {
 
+hatch_stop();
+hatch_start= async()=> {
+    let breedLimit = 50;
     let tickSpeed = 100;
     let getHatched = poke => App.game.statistics.pokemonHatched[poke.id]();
+    let getEff = poke => App.game.party.caughtPokemon.filter(p=>poke.id ==p.id)[0].breedingEfficiency();
+    let getMulti = poke => (PokemonHelper.calcNativeRegion(poke.name) !== BreedingController.regionalAttackDebuff())?App.game.party.getRegionAttackMultiplier():1.0;
 
-    let max = (a, b) => a >= b ? a : b;
-    let maxHatched = App.game.party.caughtPokemon.map(x=>getHatched(x)).reduce(max);
+    let hatchEff = (a, b) => {
+        if (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) {
+            return hatchNo(a,b);
+        }  
+        return getEff(a)*getMulti(a) > getEff(b)*getMulti(b) ? a : b;
+    };
 
-    let reducer = (a, b) => {
+    let hatchNo = (a, b) => {
         if (getHatched(a) != getHatched(b)) {
             return getHatched(a) < getHatched(b) ? a : b;
         }
@@ -32,7 +57,7 @@ hatch_start= async()=> {
                 .filter(x => !x._breeding())
                 .filter(x => x._level() == 100)
                 .filter(x => x.id >= 0)
-                .reduce(reducer)
+                .reduce(hatchEff)
             );
         }
     })();

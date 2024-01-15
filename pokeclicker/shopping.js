@@ -21,7 +21,8 @@ async function shop_start() {
             ShopHandler.showShop(pokeMartShop)
             for (let i = 0; i <= 2; i++) {
                 while (isBasePrice(ShopHandler.shopObservable().items,i) &&
-                App.game.pokeballs.pokeballs[i].quantity() < 100000
+                App.game.pokeballs.pokeballs[i].quantity() < 1000 && 
+                App.game.wallet.currencies[0]()>= ShopHandler.shopObservable().items[i].price()
                 ) {
                     ShopHandler.setSelected(i);
                     ShopHandler.buyItem();
@@ -30,7 +31,8 @@ async function shop_start() {
 
             for (let i = 3; i <= 8; i++) {
                 while (isBasePrice(ShopHandler.shopObservable().items,i) &&
-                player.itemList[ShopHandler.shopObservable().items[i].name]() < 1000
+                player.itemList[ShopHandler.shopObservable().items[i].name]() < 100 && 
+                App.game.wallet.currencies[0]()>= ShopHandler.shopObservable().items[i].price()
                 ) {
                     ShopHandler.setSelected(i);
                     ShopHandler.buyItem();

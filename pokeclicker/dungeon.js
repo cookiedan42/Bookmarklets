@@ -1,3 +1,8 @@
+function fake_kill(){
+    Battle.enemyPokemon().damage(Battle.enemyPokemon().health()-1);
+}
+
+
 function dung_map() {
     for (let board of DungeonRunner.map.board()) {
         board.forEach(x => {
@@ -39,21 +44,21 @@ async function dung_single() {
         let dest = ind.filter(c => board[c[0]][c[1]].type() >= 4)[0];
         while (DungeonRunner.map.playerPosition().y != dest[0] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveUp();
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
         while (DungeonRunner.map.playerPosition().x > dest[1] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveLeft();
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
         while (DungeonRunner.map.playerPosition().x < dest[1] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveRight();
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
         while (!DungeonRunner.dungeonFinished() && currentFloor== getPosition().floor) {
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
     }
@@ -84,7 +89,7 @@ async function dung_clean(){
     let clickNotBoss = async () => {
         if (DungeonRunner.map.currentTile().type() == 2 ||
             DungeonRunner.map.currentTile().type() == 3) {
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
     }
@@ -173,7 +178,7 @@ async function dung_clean(){
         }
 
         while (!DungeonRunner.dungeonFinished() && getPosition().floor == floor) {
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
     }

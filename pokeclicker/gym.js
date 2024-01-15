@@ -47,9 +47,9 @@ async function gym_region(target) {
     currentGym = (async (target) => {
         let gymArr = [
             ...GameConstants.KantoGyms,
-            ...GameConstants.JohtoGyms,
-            ...GameConstants.HoennGyms,
-            ...GameConstants.SinnohGyms,
+            // ...GameConstants.JohtoGyms,
+            // ...GameConstants.HoennGyms,
+            // ...GameConstants.SinnohGyms,
             //...GameConstants.UnovaGyms,
             // ...GameConstants.KalosGyms,
         ].map(x=>GymList[x]);

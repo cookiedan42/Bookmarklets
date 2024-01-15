@@ -74,6 +74,11 @@ async function farm_cheriFarm2() {
 //         }
 //     })()
 // }
+function fake_kill(){
+    Battle.enemyPokemon().damage(Battle.enemyPokemon().health()-1);
+}
+
+
 function dung_map() {
     for (let board of DungeonRunner.map.board()) {
         board.forEach(x => {
@@ -115,21 +120,21 @@ async function dung_single() {
         let dest = ind.filter(c => board[c[0]][c[1]].type() >= 4)[0];
         while (DungeonRunner.map.playerPosition().y != dest[0] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveUp();
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
         while (DungeonRunner.map.playerPosition().x > dest[1] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveLeft();
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
         while (DungeonRunner.map.playerPosition().x < dest[1] && currentFloor== getPosition().floor) {
             DungeonRunner.map.moveRight();
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
         while (!DungeonRunner.dungeonFinished() && currentFloor== getPosition().floor) {
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
     }
@@ -160,7 +165,7 @@ async function dung_clean(){
     let clickNotBoss = async () => {
         if (DungeonRunner.map.currentTile().type() == 2 ||
             DungeonRunner.map.currentTile().type() == 3) {
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
     }
@@ -249,7 +254,7 @@ async function dung_clean(){
         }
 
         while (!DungeonRunner.dungeonFinished() && getPosition().floor == floor) {
-            DungeonRunner.handleClick();
+            DungeonRunner.handleInteraction();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
     }
@@ -295,21 +300,46 @@ async function temp_fight(){
 let currentHatch = (async () => { })();
 let autoHatch = true;
 
+
+/*
+    App.game.breeding.addPokemonToHatchery(PokedexHelper.getList().filter(p=>p.id == 113)[0])
+
+    const egg = this.createEgg(pokemon.id);
+    const success = this.gainEgg(egg, eggSlot);
+
+    if (
+        BreedingController.regionalAttackDebuff() > -1 
+    && PokemonHelper.calcNativeRegion(pokemon.name) !== BreedingController.regionalAttackDebuff()
+    ) {
+        return App.game.party.getRegionAttackMultiplier();
+    }
+
+
+*/
+
 async function hatch_stop() {
     autoHatch = false;
     await currentHatch;
     autoHatch = true;
 }
 
-hatch_start= async()=> {
 
+hatch_stop();
+hatch_start= async()=> {
+    let breedLimit = 50;
     let tickSpeed = 100;
     let getHatched = poke => App.game.statistics.pokemonHatched[poke.id]();
+    let getEff = poke => App.game.party.caughtPokemon.filter(p=>poke.id ==p.id)[0].breedingEfficiency();
+    let getMulti = poke => (PokemonHelper.calcNativeRegion(poke.name) !== BreedingController.regionalAttackDebuff())?App.game.party.getRegionAttackMultiplier():1.0;
 
-    let max = (a, b) => a >= b ? a : b;
-    let maxHatched = App.game.party.caughtPokemon.map(x=>getHatched(x)).reduce(max);
+    let hatchEff = (a, b) => {
+        if (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) {
+            return hatchNo(a,b);
+        }  
+        return getEff(a)*getMulti(a) > getEff(b)*getMulti(b) ? a : b;
+    };
 
-    let reducer = (a, b) => {
+    let hatchNo = (a, b) => {
         if (getHatched(a) != getHatched(b)) {
             return getHatched(a) < getHatched(b) ? a : b;
         }
@@ -326,7 +356,7 @@ hatch_start= async()=> {
                 .filter(x => !x._breeding())
                 .filter(x => x._level() == 100)
                 .filter(x => x.id >= 0)
-                .reduce(reducer)
+                .reduce(hatchEff)
             );
         }
     })();
@@ -459,9 +489,9 @@ async function gym_region(target) {
     currentGym = (async (target) => {
         let gymArr = [
             ...GameConstants.KantoGyms,
-            ...GameConstants.JohtoGyms,
-            ...GameConstants.HoennGyms,
-            ...GameConstants.SinnohGyms,
+            // ...GameConstants.JohtoGyms,
+            // ...GameConstants.HoennGyms,
+            // ...GameConstants.SinnohGyms,
             //...GameConstants.UnovaGyms,
             // ...GameConstants.KalosGyms,
         ].map(x=>GymList[x]);
@@ -502,7 +532,8 @@ async function shop_start() {
             ShopHandler.showShop(pokeMartShop)
             for (let i = 0; i <= 2; i++) {
                 while (isBasePrice(ShopHandler.shopObservable().items,i) &&
-                App.game.pokeballs.pokeballs[i].quantity() < 100000
+                App.game.pokeballs.pokeballs[i].quantity() < 1000 && 
+                App.game.wallet.currencies[0]()>= ShopHandler.shopObservable().items[i].price()
                 ) {
                     ShopHandler.setSelected(i);
                     ShopHandler.buyItem();
@@ -511,7 +542,8 @@ async function shop_start() {
 
             for (let i = 3; i <= 8; i++) {
                 while (isBasePrice(ShopHandler.shopObservable().items,i) &&
-                player.itemList[ShopHandler.shopObservable().items[i].name]() < 1000
+                player.itemList[ShopHandler.shopObservable().items[i].name]() < 100 && 
+                App.game.wallet.currencies[0]()>= ShopHandler.shopObservable().items[i].price()
                 ) {
                     ShopHandler.setSelected(i);
                     ShopHandler.buyItem();
