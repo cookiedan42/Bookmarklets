@@ -32,6 +32,9 @@ hatch_start= async()=> {
     let getHatched = poke => App.game.statistics.pokemonHatched[poke.id]();
     let getEff = poke => App.game.party.caughtPokemon.filter(p=>poke.id ==p.id)[0].breedingEfficiency();
     let getMulti = poke => BreedingController.calculateRegionalMultiplier(poke);
+    let forMega = poke =>(PokemonHelper.hasMegaEvolution(poke.name) && (poke.totalVitaminsUsed()>=30)&&(poke.baseAttack *1000 > poke.attack));
+    let isShadow = poke =>(poke.shadow>0 );
+    let isNotShadow = poke =>(poke.shadow === 0 );
 
     let hatchEff = (a, b) => {
         if (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) {
@@ -52,12 +55,21 @@ hatch_start= async()=> {
         while (autoHatch) {
             await new Promise(resolve => setTimeout(resolve, tickSpeed));
             if (App.game.breeding.queueList().length >= 2) { continue;}
-            App.game.breeding.addPokemonToHatchery(
-                App.game.party.caughtPokemon
+            
+            let filterList = App.game.party.caughtPokemon
                 .filter(x => !x._breeding())
-                .filter(x => x._level() == 100)
-                .filter(x => x.id >= 0)
-                .reduce(hatchEff)
+                .filter(x => x._level() == 100);
+
+            if (filterList.filter(forMega).length > 0){
+                filterList = filterList.filter(forMega);
+            }else if (!App.game.purifyChamber.canPurify()){
+                filterList = filterList.filter(isShadow);
+            } else{
+                filterList = filterList.filter(isNotShadow);
+            }
+
+            App.game.breeding.addPokemonToHatchery(
+                filterList.reduce(hatchEff)
             );
         }
     })();
