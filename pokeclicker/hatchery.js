@@ -27,11 +27,11 @@ async function hatch_stop() {
 
 hatch_stop();
 hatch_start= async()=> {
-    let breedLimit = 50;
+    let breedLimit = 10;
     let tickSpeed = 100;
     let getHatched = poke => App.game.statistics.pokemonHatched[poke.id]();
     let getEff = poke => App.game.party.caughtPokemon.filter(p=>poke.id ==p.id)[0].breedingEfficiency();
-    let getMulti = poke => (PokemonHelper.calcNativeRegion(poke.name) !== BreedingController.regionalAttackDebuff())?App.game.party.getRegionAttackMultiplier():1.0;
+    let getMulti = poke => BreedingController.calculateRegionalMultiplier(poke);
 
     let hatchEff = (a, b) => {
         if (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) {
@@ -63,4 +63,4 @@ hatch_start= async()=> {
     })();
 }
 
-hatch_start();
+// hatch_start();

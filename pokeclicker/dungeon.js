@@ -17,7 +17,7 @@ function dung_map() {
 }
 
 function dung_startMap() {
-    DungeonRunner.initializeDungeon(player.town().dungeon);
+    DungeonRunner.initializeDungeon(player.town.dungeon);
     dung_map()
 }
 
@@ -35,7 +35,7 @@ async function dung_single() {
         return DungeonRunner.map.playerPosition();
     }
 
-    DungeonRunner.initializeDungeon(player.town().dungeon);
+    DungeonRunner.initializeDungeon(player.town.dungeon);
     
     for (let board of DungeonRunner.map.board()) {
         let currentFloor = getPosition().floor;
@@ -67,7 +67,7 @@ async function dung_single() {
 async function dung_until(target) {
     await dung_stop();
     currentDung = (async (target) => {
-        let dungIndex = GameConstants.getDungeonIndex(player.town().name);
+        let dungIndex = GameConstants.getDungeonIndex(player.town.name);
         while (target > App.game.statistics.dungeonsCleared[dungIndex]()) {
             if (!autoDung) { break; }
             await dung_single();
@@ -121,7 +121,7 @@ async function dung_clean(){
     await itemIfLess("Dowsing_machine");
     await itemIfLess("xAttack");
     await itemIfLess("xClick");
-    DungeonRunner.initializeDungeon(player.town().dungeon);
+    DungeonRunner.initializeDungeon(player.town.dungeon);
     let boards = DungeonRunner.map.board();
       
     for (let floor = 0; floor < boards.length; floor++) {

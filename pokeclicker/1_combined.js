@@ -93,7 +93,7 @@ function dung_map() {
 }
 
 function dung_startMap() {
-    DungeonRunner.initializeDungeon(player.town().dungeon);
+    DungeonRunner.initializeDungeon(player.town.dungeon);
     dung_map()
 }
 
@@ -111,7 +111,7 @@ async function dung_single() {
         return DungeonRunner.map.playerPosition();
     }
 
-    DungeonRunner.initializeDungeon(player.town().dungeon);
+    DungeonRunner.initializeDungeon(player.town.dungeon);
     
     for (let board of DungeonRunner.map.board()) {
         let currentFloor = getPosition().floor;
@@ -143,7 +143,7 @@ async function dung_single() {
 async function dung_until(target) {
     await dung_stop();
     currentDung = (async (target) => {
-        let dungIndex = GameConstants.getDungeonIndex(player.town().name);
+        let dungIndex = GameConstants.getDungeonIndex(player.town.name);
         while (target > App.game.statistics.dungeonsCleared[dungIndex]()) {
             if (!autoDung) { break; }
             await dung_single();
@@ -197,7 +197,7 @@ async function dung_clean(){
     await itemIfLess("Dowsing_machine");
     await itemIfLess("xAttack");
     await itemIfLess("xClick");
-    DungeonRunner.initializeDungeon(player.town().dungeon);
+    DungeonRunner.initializeDungeon(player.town.dungeon);
     let boards = DungeonRunner.map.board();
       
     for (let floor = 0; floor < boards.length; floor++) {
@@ -362,7 +362,7 @@ hatch_start= async()=> {
     })();
 }
 
-hatch_start();
+// hatch_start();
 let currentRoute = (async () => { })();
 let autoRoute = true;
 
@@ -453,13 +453,19 @@ async function gym_stop() {
 async function gym_times(times) {
     await gym_stop();
     currentGym = (async (times) => {
-        while (autoGym && times-- > 0){
-            GymRunner.startGym(GymList[player.town().name], false, false);
-            while (GymRunner.running()) { 
-                if (GymBattle.enemyPokemon().health()>0){
-                    GymBattle.clickAttack();
+        let gymArr = player.town.content.filter(x => x.town);
+        for (let index = 0; index < gymArr.length; index++) {
+            let gym = gymArr[index];
+            let badgeNo = GameConstants.getGymIndex(gym.town);
+            let target = times + App.game.statistics.gymsDefeated[badgeNo]();
+            while (autoGym && App.game.statistics.gymsDefeated[badgeNo]() < target) {
+                GymRunner.startGym(GymList[gym.town], false, false);
+                while (GymRunner.running()) {
+                    if (GymBattle.enemyPokemon().health() > 0) {
+                        GymBattle.clickAttack();
+                    }
+                    await new Promise(resolve => setTimeout(resolve, GymTick));
                 }
-                await new Promise(resolve => setTimeout(resolve, GymTick)); 
             }
         }
     })(times);
@@ -468,7 +474,7 @@ async function gym_times(times) {
 async function gym_until(target) {
     await gym_stop();
     currentGym = (async (target) => {
-        let gymArr = player.town().content.filter(x=>x.town);
+        let gymArr = player.town.content.filter(x=>x.town);
         for (let index = 0; index < gymArr.length; index++) {
             let gym = gymArr[index];
             let badgeNo = GameConstants.getGymIndex(gym.town);
@@ -484,31 +490,31 @@ async function gym_until(target) {
     })(target);
 }
 
-async function gym_region(target) {
-    await gym_stop();
-    currentGym = (async (target) => {
-        let gymArr = [
-            ...GameConstants.KantoGyms,
-            // ...GameConstants.JohtoGyms,
-            // ...GameConstants.HoennGyms,
-            // ...GameConstants.SinnohGyms,
-            //...GameConstants.UnovaGyms,
-            // ...GameConstants.KalosGyms,
-        ].map(x=>GymList[x]);
-        for (let index = 0; index < gymArr.length; index++) {
-            while (target > App.game.statistics.gymsDefeated[GameConstants.getGymIndex(gymArr[index].town)]()) {
-                if (!autoGym) {break;}
-                GymRunner.startGym(gymArr[index], false, false);
-                while (GymBattle.index() < Math.min(6,GymBattle.gym.pokemons.length)) {
-                    if (GymBattle.enemyPokemon().health()>0){
-                        GymBattle.clickAttack();
-                    }
-                    await new Promise(resolve => setTimeout(resolve, GymTick));
-                }
-            }
-        }
-    })(target);
-}
+// async function gym_region(target) {
+//     await gym_stop();
+//     currentGym = (async (target) => {
+//         let gymArr = [
+//             ...GameConstants.KantoGyms,
+//             // ...GameConstants.JohtoGyms,
+//             // ...GameConstants.HoennGyms,
+//             // ...GameConstants.SinnohGyms,
+//             //...GameConstants.UnovaGyms,
+//             // ...GameConstants.KalosGyms,
+//         ].map(x=>GymList[x]);
+//         for (let index = 0; index < gymArr.length; index++) {
+//             while (target > App.game.statistics.gymsDefeated[GameConstants.getGymIndex(gymArr[index].town)]()) {
+//                 if (!autoGym) {break;}
+//                 GymRunner.startGym(gymArr[index], false, false);
+//                 while (GymBattle.index() < Math.min(6,GymBattle.gym.pokemons.length)) {
+//                     if (GymBattle.enemyPokemon().health()>0){
+//                         GymBattle.clickAttack();
+//                     }
+//                     await new Promise(resolve => setTimeout(resolve, GymTick));
+//                 }
+//             }
+//         }
+//     })(target);
+// }
 let shopper = (async () => { })();
 let shopping = true;
 
@@ -523,17 +529,27 @@ async function shop_stop(){
 async function shop_start() {
     await shop_stop();
 
+    let POKEBALL_LIMIT = 1000;
+    let ITEM_LIMIT = 100;
+    let MULCH_LIMIT = 5;
+    let SHOVEL_LIMIT = 5;
+
     shopper = (async () => {
-        let isBasePrice = (sh,index) => {return (
-            sh[index].price() ===
-            sh[index].basePrice
-        ); }
+
+        let getCashAmt = App.game.wallet.currencies[0];
+        let getFarmPt = App.game.wallet.currencies[4];
+
+        let getPrice = ind => ShopHandler.shopObservable().items[ind].price();
+        let getBasePrice = ind => ShopHandler.shopObservable().items[ind].basePrice;
+        let isBasePrice = ind => getPrice(ind) === getBasePrice(ind);
+        let getPokeNo = ind => App.game.pokeballs.pokeballs[ind].quantity();
+
         while (shopping){
             ShopHandler.showShop(pokeMartShop)
             for (let i = 0; i <= 2; i++) {
-                while (isBasePrice(ShopHandler.shopObservable().items,i) &&
-                App.game.pokeballs.pokeballs[i].quantity() < 1000 && 
-                App.game.wallet.currencies[0]()>= ShopHandler.shopObservable().items[i].price()
+                while (isBasePrice(i) &&
+                    getCashAmt() >= getPrice(i) &&
+                    getPokeNo(i) < POKEBALL_LIMIT
                 ) {
                     ShopHandler.setSelected(i);
                     ShopHandler.buyItem();
@@ -541,9 +557,9 @@ async function shop_start() {
             }
 
             for (let i = 3; i <= 8; i++) {
-                while (isBasePrice(ShopHandler.shopObservable().items,i) &&
-                player.itemList[ShopHandler.shopObservable().items[i].name]() < 100 && 
-                App.game.wallet.currencies[0]()>= ShopHandler.shopObservable().items[i].price()
+                while (isBasePrice(i) &&
+                    getCashAmt() >= getPrice(i) &&
+                    player.itemList[ShopHandler.shopObservable().items[i].name]() < ITEM_LIMIT 
                 ) {
                     ShopHandler.setSelected(i);
                     ShopHandler.buyItem();
@@ -552,9 +568,9 @@ async function shop_start() {
 
             for (let i = 0; i < 5; i++) {
                 ShopHandler.showShop(SinnohBerryMaster);
-                while(isBasePrice(ShopHandler.shopObservable().items,i) &&
-                    App.game.farming.mulchList[i]() <=5000 &&
-                    App.game.wallet.currencies[4]()>= ShopHandler.shopObservable().items[i].price()
+                while(isBasePrice(i) &&
+                    getFarmPt() >= getPrice(i) &&
+                    App.game.farming.mulchList[i]() <= MULCH_LIMIT
                 ){
                     ShopHandler.setSelected(i);
                     ShopHandler.buyItem();
@@ -562,23 +578,21 @@ async function shop_start() {
             }
 
             ShopHandler.showShop(SinnohBerryMaster);
-            while (isBasePrice(ShopHandler.shopObservable().items,5) &&
-                App.game.wallet.currencies[4]()>= ShopHandler.shopObservable().items[5].price() &&
-                App.game.farming.shovelAmt() < 500
+            while (isBasePrice(5) &&
+                getFarmPt() >= getPrice(5) &&
+                App.game.farming.shovelAmt() < SHOVEL_LIMIT
             ) {
                 ShopHandler.setSelected(5);
                 ShopHandler.buyItem();
             }
             
-            while (isBasePrice(ShopHandler.shopObservable().items,6) &&
-                App.game.wallet.currencies[4]()>= ShopHandler.shopObservable().items[6].price() &&
-                App.game.farming.mulchShovelAmt() < 500
+            while (isBasePrice(6) &&
+                getFarmPt() >= getPrice(6) &&
+                App.game.farming.mulchShovelAmt() < SHOVEL_LIMIT
             ) {
                 ShopHandler.setSelected(6);
                 ShopHandler.buyItem();
             }
-
-
 
             await new Promise(resolve => setTimeout(resolve, 1000));
         }
