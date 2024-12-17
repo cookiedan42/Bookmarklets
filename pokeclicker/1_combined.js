@@ -15,6 +15,7 @@ async function farm_clear() {
         while (true) {
             if (!autoFarm) { break; }
             App.game.farming.harvestAll();
+            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
             await new Promise(resolve => setTimeout(resolve, BerryTick));
         }
     })();
@@ -27,6 +28,7 @@ async function farm_uniformFarm(BerryType_var) {
             if (!autoFarm) { break; }
             App.game.farming.harvestAll();
             App.game.farming.plantAll(BerryType_var);
+            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
             await new Promise(resolve => setTimeout(resolve, BerryTick));
         }
     })();
@@ -50,6 +52,135 @@ async function farm_uniformFarm2(BerryType_var) {
 async function farm_cheriFarm2() {
     await farm_uniformFarm2(BerryType.Cheri);
 }
+
+farm_loop = async (target) => {
+    await farm_stop();
+    currentFarm = (async () => {
+        let AGE = App.game.farming.berryData[target].growthTime[4];
+        while (true) {
+            if (!autoFarm) { break; }
+            let age = App.game.farming.plotList[0]._age();
+            if (age + 2 > AGE) {
+                App.game.farming.harvestAll();
+            }
+            App.game.farming.plantAll(target);
+            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    })()
+}
+
+
+farm_fast_loop = async (target) => {
+    await farm_stop();
+    currentFarm = (async () => {
+        let WACAN_AGE = App.game.farming.berryData[BerryType.Wacan].growthTime[4];
+        let PASSHO_AGE = App.game.farming.berryData[BerryType.Passho].growthTime[4];
+        let TARGET_AGE = App.game.farming.berryData[target].growthTime[4];
+        while (true) {
+            if (!autoFarm) { break; }
+
+            // Wacan for boost speed
+            [0,2, 4,5,7,9,15,17,19,20,22,24].map(
+                pltIndex => {
+                    let age = App.game.farming.plotList[pltIndex]._age();
+                    if (age + 2 > WACAN_AGE) {
+                        // replant
+                        App.game.farming.harvest(pltIndex);
+                    }
+                    App.game.farming.plant(pltIndex, BerryType.Wacan);
+                }
+            );
+
+            // Passho for boost drop
+            [10, 12, 14].map(
+                pltIndex => {
+                    let age = App.game.farming.plotList[pltIndex]._age();
+                    if (age + 2 > PASSHO_AGE) {
+                        // replant
+                        App.game.farming.harvest(pltIndex);
+                    }
+                    App.game.farming.plant(pltIndex, BerryType.Passho);
+                }
+            );
+
+            // target berry
+            [1, 3, 6, 8, 11, 13, 16, 18, 21, 23].map(
+                pltIndex => {
+                    let age = App.game.farming.plotList[pltIndex]._age();
+                    if (age + 2 > TARGET_AGE) {
+                        App.game.farming.harvest(pltIndex);
+                    }
+                    App.game.farming.plant(pltIndex, target);
+                }
+            )
+            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    })()
+}
+
+
+farm_dupe = async (target) => {
+    await farm_stop();
+    currentFarm = (async () => {
+        let WACAN_AGE = App.game.farming.berryData[BerryType.Wacan].growthTime[4];
+        let PASSHO_AGE = App.game.farming.berryData[BerryType.Passho].growthTime[4];
+        while (true) {
+            if (!autoFarm) { break; }
+
+            // Wacan for boost speed
+            [0,4,7,15,19,22].map(
+                pltIndex => {
+                    let age = App.game.farming.plotList[pltIndex]._age();
+                    if (age + 2 > WACAN_AGE) {
+                        // replant
+                        App.game.farming.harvest(pltIndex);
+                    }
+                    App.game.farming.plant(pltIndex, BerryType.Wacan);
+                }
+            );
+
+            // Passho for boost drop
+            [2, 5, 9, 10, 12, 14, 17,20,24].map(
+                pltIndex => {
+                    let age = App.game.farming.plotList[pltIndex]._age();
+                    if (age + 2 > PASSHO_AGE) {
+                        // replant
+                        App.game.farming.harvest(pltIndex);
+                    }
+                    App.game.farming.plant(pltIndex, BerryType.Passho);
+                }
+            );
+
+            // target berry
+            [1,3,6,8,11,13,16,18,21,23].map(
+                pltIndex => {
+                    App.game.farming.harvest(pltIndex);
+                    App.game.farming.plant(pltIndex, target);
+                }
+            )
+            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    })()
+}
+
+
+
+
+
+
+
+
+
+
+// for (let i = 20; i < 30; i++) {
+//     App.game.farming.gainBerry(BerryType[i], 1, false)
+// }
+
+
+
 
 
 
@@ -107,6 +238,8 @@ async function dung_stop() {
 }
 
 async function dung_single() {
+    await itemIfLess("Dowsing_machine");
+    await itemIfLess("xAttack");
     let getPosition = ()=>{
         return DungeonRunner.map.playerPosition();
     }
@@ -161,7 +294,7 @@ async function dung_times(times) {
     })(times);
 }
 
-async function dung_clean(){
+dung_clean = async () => {
     let clickNotBoss = async () => {
         if (DungeonRunner.map.currentTile().type() == 2 ||
             DungeonRunner.map.currentTile().type() == 3) {
@@ -172,31 +305,10 @@ async function dung_clean(){
     let getPosition = ()=>{
         return DungeonRunner.map.playerPosition();
     }
-    let itemIfLess = async (name)=>{
-        let timeBase = player.effectTimer[name]();
-        let blockNo = timeBase.split(":").length;
-        if (timeBase == ""){blockNo=0;}
-    
-        for (let index = blockNo; index < 3; index++) {
-            timeBase = "00:"+timeBase;        
-        }
-        if (timeBase.endsWith(":")){
-            timeBase = timeBase.slice(0,-1);
-        }
-    
-        let target = new Date("1970-01-01T" + timeBase +"+00:00");
-        target = target.getTime()/1000;
-    
-        if (target <= 60){
-            ItemHandler.useItem(name,2);
-            await new Promise(resolve => setTimeout(resolve, 1));
-        }
-    }
-
 
     await itemIfLess("Dowsing_machine");
     await itemIfLess("xAttack");
-    await itemIfLess("xClick");
+    // await itemIfLess("xClick");
     DungeonRunner.initializeDungeon(player.town.dungeon);
     let boards = DungeonRunner.map.board();
       
@@ -207,6 +319,7 @@ async function dung_clean(){
         // go all the way right --> {size-1,size-1}
         while (getPosition().x < boardSize - 1) {
             await clickNotBoss();
+            if (DungeonRunner.dungeonFinished()) { return; }
             DungeonRunner.map.moveRight();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
@@ -214,10 +327,10 @@ async function dung_clean(){
 
         let x = boardSize - 1;
         while (getPosition().x >= 0) {
-
             // go to bottom of target col
             while (getPosition().y != boardSize - 1) {
                 await clickNotBoss();
+                if (DungeonRunner.dungeonFinished()) { return; }
                 DungeonRunner.map.moveToCoordinates(x, boardSize - 1, floor);
                 await new Promise(resolve => setTimeout(resolve, 1));
             }
@@ -226,6 +339,7 @@ async function dung_clean(){
             // go toward top
             while (getPosition().y > 0) {
                 await clickNotBoss();
+                if (DungeonRunner.dungeonFinished()) { return; }
                 DungeonRunner.map.moveUp();
                 await new Promise(resolve => setTimeout(resolve, 1));
             }
@@ -248,6 +362,7 @@ async function dung_clean(){
         }
 
         while ( getPosition().x != bossX || getPosition().y != bossY ) {
+            if (DungeonRunner.dungeonFinished()) { return; }
             DungeonRunner.map.moveToCoordinates(bossX, bossY, floor);
             await clickNotBoss();
             await new Promise(resolve => setTimeout(resolve, 1));
@@ -260,7 +375,7 @@ async function dung_clean(){
     }
 }
 
-async function dung_clean_times(times) {
+dung_clean_times= async (times) => {
     await dung_stop();
 
     currentDung = (async (times) => {
@@ -271,19 +386,20 @@ async function dung_clean_times(times) {
     })(times);
 }
 
-async function frontier_farm(){
+async function frontier_farm() {
     await dung_stop();
-    currentDung = (async ()=>{
-        while(true){
+    currentDung = (async () => {
+        while (true) {
             if (!autoDung) { break; }
-            if (!BattleFrontierRunner.started()){
+            if (!BattleFrontierRunner.started()) {
                 BattleFrontierRunner.start(true);
             }
             await new Promise(resolve => setTimeout(resolve, 1000));
         };
-    })
+    })();
 
 }
+frontier_stop = dung_stop
 
 async function temp_fight(){
     await dung_stop();
@@ -324,17 +440,17 @@ async function hatch_stop() {
 }
 
 
-hatch_stop();
-hatch_start= async()=> {
-    let breedLimit = 100;
+hatch_start = async()=> {
+    let breedLimit = 150;
     let tickSpeed = 100;
     let getHatched = poke => App.game.statistics.pokemonHatched[poke.id]();
     let getEff = poke => App.game.party.caughtPokemon.filter(p=>poke.id ==p.id)[0].breedingEfficiency();
-    let getMulti = poke => (PokemonHelper.calcNativeRegion(poke.name) !== BreedingController.regionalAttackDebuff())?App.game.party.getRegionAttackMultiplier():1.0;
-    let forMega = poke =>(PokemonHelper.hasMegaEvolution(poke.name) && (poke.totalVitaminsUsed()>=30)&&(poke.baseAttack *1000 > poke.attack));
+    let getMulti = poke => BreedingController.calculateRegionalMultiplier(poke);
+    let maxVitamins = () => (player.highestRegion() + 1) * 5 ;
+    let forMega = poke =>(PokemonHelper.hasMegaEvolution(poke.name) && (poke.totalVitaminsUsed()>=maxVitamins())&&(poke.baseAttack *500 > poke.attack));
     let isShadow = poke =>(poke.shadow>0 );
     let isNotShadow = poke =>(poke.shadow === 0 );
-
+    let hatchEffP = (a, b) => getEff(a) * getMulti(a) > getEff(b) * getMulti(b) ? a : b;
     let hatchEff = (a, b) => {
         if (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) {
             return hatchNo(a,b);
@@ -355,26 +471,28 @@ hatch_start= async()=> {
             await new Promise(resolve => setTimeout(resolve, tickSpeed));
             if (App.game.breeding.queueList().length >= 2) { continue;}
             
-            let filterList = App.game.party.caughtPokemon
+            let getFilterList = () => App.game.party.caughtPokemon
                 .filter(x => !x._breeding())
                 .filter(x => x._level() == 100);
 
-            if (filterList.filter(forMega).length > 0){
-                filterList = filterList.filter(forMega);
-            }else if (!App.game.purifyChamber.canPurify()){
-                filterList = filterList.filter(isShadow);
-            } else{
-                filterList = filterList.filter(isNotShadow);
+            if (getFilterList().filter(forMega).length > 0){
+                App.game.breeding.addPokemonToHatchery(
+                    getFilterList().filter(forMega).reduce(hatchEffP)
+                );
+            } 
+            if (!App.game.purifyChamber.canPurify() && getFilterList().filter(isShadow).length > 0){
+                App.game.breeding.addPokemonToHatchery(
+                    getFilterList().filter(isShadow).reduce(hatchEff)
+                );
             }
-
             App.game.breeding.addPokemonToHatchery(
-                filterList.reduce(hatchEff)
+                getFilterList().reduce(hatchEff)
             );
         }
     })();
 }
 
-// hatch_start();
+hatch_start();
 let currentRoute = (async () => { })();
 let autoRoute = true;
 
@@ -447,7 +565,20 @@ async function clickAttack() {
     })();
 }
 
-
+route_items = async () => {
+    await route_stop();
+    currentRoute = (async () => {
+        while (true) {
+            if (!autoRoute) { break; }
+            await itemIfLess("xAttack");
+            await itemIfLess("Lucky_egg"); 
+            await itemIfLess("Token_collector"); 
+            await itemIfLess("Dowsing_machine");
+            await itemIfLess("Lucky_incense");
+            await new Promise(resolve => setTimeout(resolve, 30));
+        }
+    })();
+}
 
 function route_10k() { route_autoFightLimit(10000); }
 function route_1k() { route_autoFightLimit(1000); }
@@ -462,7 +593,28 @@ async function gym_stop() {
     autoGym = true;
 }
 
-async function gym_times(times) {
+itemIfLess = async (name) => {
+    let timeBase = player.effectTimer[name]();
+    let blockNo = timeBase.split(":").length;
+    if (timeBase == "") { blockNo = 0; }
+
+    for (let index = blockNo; index < 3; index++) {
+        timeBase = "00:" + timeBase;
+    }
+    if (timeBase.endsWith(":")) {
+        timeBase = timeBase.slice(0, -1);
+    }
+
+    let target = new Date("1970-01-01T" + timeBase + "+00:00");
+    target = target.getTime() / 1000;
+
+    if (target <= 60) {
+        ItemHandler.useItem(name, 2);
+        await new Promise(resolve => setTimeout(resolve, 1));
+    }
+}
+
+gym_times = async (times) => {
     await gym_stop();
     currentGym = (async (times) => {
         let gymArr = player.town.content.filter(x => x.town);
@@ -483,7 +635,7 @@ async function gym_times(times) {
     })(times);
 }
 
-async function gym_until(target) {
+gym_until= async (target) => {
     await gym_stop();
     currentGym = (async (target) => {
         let gymArr = player.town.content.filter(x=>x.town);
@@ -491,6 +643,8 @@ async function gym_until(target) {
             let gym = gymArr[index];
             let badgeNo = GameConstants.getGymIndex(gym.town);
             while (autoGym && App.game.statistics.gymsDefeated[badgeNo]() < target){
+                await itemIfLess("Lucky_egg");
+                await itemIfLess("Lucky_incense");
                 GymRunner.startGym(GymList[gym.town], false, false); 
                 while (GymRunner.running()) {
                     if (GymBattle.enemyPokemon().health()>0){
@@ -538,13 +692,13 @@ async function shop_stop(){
 
 }
 
-async function shop_start() {
+shop_start = async () => {
     await shop_stop();
 
     let POKEBALL_LIMIT = 1000;
     let ITEM_LIMIT = 100;
-    let MULCH_LIMIT = 5;
-    let SHOVEL_LIMIT = 5;
+    let MULCH_LIMIT = 2000;
+    let SHOVEL_LIMIT = 100;
 
     shopper = (async () => {
 
@@ -578,8 +732,8 @@ async function shop_start() {
                 }
             }
 
-            for (let i = 0; i < 5; i++) {
-                ShopHandler.showShop(SinnohBerryMaster);
+            for (let i = 0; i < 6; i++) {
+                ShopHandler.showShop(DriftveilBerryMaster);
                 while(isBasePrice(i) &&
                     getFarmPt() >= getPrice(i) &&
                     App.game.farming.mulchList[i]() <= MULCH_LIMIT
@@ -589,20 +743,20 @@ async function shop_start() {
                 }
             }
 
-            ShopHandler.showShop(SinnohBerryMaster);
-            while (isBasePrice(5) &&
-                getFarmPt() >= getPrice(5) &&
+            ShopHandler.showShop(DriftveilBerryMaster);
+            while (isBasePrice(6) &&
+                getFarmPt() >= getPrice(6) &&
                 App.game.farming.shovelAmt() < SHOVEL_LIMIT
             ) {
-                ShopHandler.setSelected(5);
+                ShopHandler.setSelected(6);
                 ShopHandler.buyItem();
             }
             
-            while (isBasePrice(6) &&
-                getFarmPt() >= getPrice(6) &&
+            while (isBasePrice(7) &&
+                getFarmPt() >= getPrice(7) &&
                 App.game.farming.mulchShovelAmt() < SHOVEL_LIMIT
             ) {
-                ShopHandler.setSelected(6);
+                ShopHandler.setSelected(7);
                 ShopHandler.buyItem();
             }
 

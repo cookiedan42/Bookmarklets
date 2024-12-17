@@ -31,6 +31,8 @@ async function dung_stop() {
 }
 
 async function dung_single() {
+    await itemIfLess("Dowsing_machine");
+    await itemIfLess("xAttack");
     let getPosition = ()=>{
         return DungeonRunner.map.playerPosition();
     }
@@ -85,7 +87,7 @@ async function dung_times(times) {
     })(times);
 }
 
-async function dung_clean(){
+dung_clean = async () => {
     let clickNotBoss = async () => {
         if (DungeonRunner.map.currentTile().type() == 2 ||
             DungeonRunner.map.currentTile().type() == 3) {
@@ -96,31 +98,10 @@ async function dung_clean(){
     let getPosition = ()=>{
         return DungeonRunner.map.playerPosition();
     }
-    let itemIfLess = async (name)=>{
-        let timeBase = player.effectTimer[name]();
-        let blockNo = timeBase.split(":").length;
-        if (timeBase == ""){blockNo=0;}
-    
-        for (let index = blockNo; index < 3; index++) {
-            timeBase = "00:"+timeBase;        
-        }
-        if (timeBase.endsWith(":")){
-            timeBase = timeBase.slice(0,-1);
-        }
-    
-        let target = new Date("1970-01-01T" + timeBase +"+00:00");
-        target = target.getTime()/1000;
-    
-        if (target <= 60){
-            ItemHandler.useItem(name,2);
-            await new Promise(resolve => setTimeout(resolve, 1));
-        }
-    }
-
 
     await itemIfLess("Dowsing_machine");
     await itemIfLess("xAttack");
-    await itemIfLess("xClick");
+    // await itemIfLess("xClick");
     DungeonRunner.initializeDungeon(player.town.dungeon);
     let boards = DungeonRunner.map.board();
       
@@ -131,6 +112,7 @@ async function dung_clean(){
         // go all the way right --> {size-1,size-1}
         while (getPosition().x < boardSize - 1) {
             await clickNotBoss();
+            if (DungeonRunner.dungeonFinished()) { return; }
             DungeonRunner.map.moveRight();
             await new Promise(resolve => setTimeout(resolve, 1));
         }
@@ -138,10 +120,10 @@ async function dung_clean(){
 
         let x = boardSize - 1;
         while (getPosition().x >= 0) {
-
             // go to bottom of target col
             while (getPosition().y != boardSize - 1) {
                 await clickNotBoss();
+                if (DungeonRunner.dungeonFinished()) { return; }
                 DungeonRunner.map.moveToCoordinates(x, boardSize - 1, floor);
                 await new Promise(resolve => setTimeout(resolve, 1));
             }
@@ -150,6 +132,7 @@ async function dung_clean(){
             // go toward top
             while (getPosition().y > 0) {
                 await clickNotBoss();
+                if (DungeonRunner.dungeonFinished()) { return; }
                 DungeonRunner.map.moveUp();
                 await new Promise(resolve => setTimeout(resolve, 1));
             }
@@ -172,6 +155,7 @@ async function dung_clean(){
         }
 
         while ( getPosition().x != bossX || getPosition().y != bossY ) {
+            if (DungeonRunner.dungeonFinished()) { return; }
             DungeonRunner.map.moveToCoordinates(bossX, bossY, floor);
             await clickNotBoss();
             await new Promise(resolve => setTimeout(resolve, 1));
@@ -184,7 +168,7 @@ async function dung_clean(){
     }
 }
 
-async function dung_clean_times(times) {
+dung_clean_times= async (times) => {
     await dung_stop();
 
     currentDung = (async (times) => {
@@ -195,19 +179,20 @@ async function dung_clean_times(times) {
     })(times);
 }
 
-async function frontier_farm(){
+async function frontier_farm() {
     await dung_stop();
-    currentDung = (async ()=>{
-        while(true){
+    currentDung = (async () => {
+        while (true) {
             if (!autoDung) { break; }
-            if (!BattleFrontierRunner.started()){
+            if (!BattleFrontierRunner.started()) {
                 BattleFrontierRunner.start(true);
             }
             await new Promise(resolve => setTimeout(resolve, 1000));
         };
-    })
+    })();
 
 }
+frontier_stop = dung_stop
 
 async function temp_fight(){
     await dung_stop();

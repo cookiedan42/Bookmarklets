@@ -9,13 +9,13 @@ async function shop_stop(){
 
 }
 
-async function shop_start() {
+shop_start = async () => {
     await shop_stop();
 
     let POKEBALL_LIMIT = 1000;
     let ITEM_LIMIT = 100;
-    let MULCH_LIMIT = 5;
-    let SHOVEL_LIMIT = 5;
+    let MULCH_LIMIT = 2000;
+    let SHOVEL_LIMIT = 100;
 
     shopper = (async () => {
 
@@ -49,8 +49,8 @@ async function shop_start() {
                 }
             }
 
-            for (let i = 0; i < 5; i++) {
-                ShopHandler.showShop(SinnohBerryMaster);
+            for (let i = 0; i < 6; i++) {
+                ShopHandler.showShop(DriftveilBerryMaster);
                 while(isBasePrice(i) &&
                     getFarmPt() >= getPrice(i) &&
                     App.game.farming.mulchList[i]() <= MULCH_LIMIT
@@ -60,20 +60,20 @@ async function shop_start() {
                 }
             }
 
-            ShopHandler.showShop(SinnohBerryMaster);
-            while (isBasePrice(5) &&
-                getFarmPt() >= getPrice(5) &&
+            ShopHandler.showShop(DriftveilBerryMaster);
+            while (isBasePrice(6) &&
+                getFarmPt() >= getPrice(6) &&
                 App.game.farming.shovelAmt() < SHOVEL_LIMIT
             ) {
-                ShopHandler.setSelected(5);
+                ShopHandler.setSelected(6);
                 ShopHandler.buyItem();
             }
             
-            while (isBasePrice(6) &&
-                getFarmPt() >= getPrice(6) &&
+            while (isBasePrice(7) &&
+                getFarmPt() >= getPrice(7) &&
                 App.game.farming.mulchShovelAmt() < SHOVEL_LIMIT
             ) {
-                ShopHandler.setSelected(6);
+                ShopHandler.setSelected(7);
                 ShopHandler.buyItem();
             }
 

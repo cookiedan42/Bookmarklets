@@ -70,7 +70,20 @@ async function clickAttack() {
     })();
 }
 
-
+route_items = async () => {
+    await route_stop();
+    currentRoute = (async () => {
+        while (true) {
+            if (!autoRoute) { break; }
+            await itemIfLess("xAttack");
+            await itemIfLess("Lucky_egg"); 
+            await itemIfLess("Token_collector"); 
+            await itemIfLess("Dowsing_machine");
+            await itemIfLess("Lucky_incense");
+            await new Promise(resolve => setTimeout(resolve, 30));
+        }
+    })();
+}
 
 function route_10k() { route_autoFightLimit(10000); }
 function route_1k() { route_autoFightLimit(1000); }
