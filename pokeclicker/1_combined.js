@@ -413,86 +413,73 @@ async function temp_fight(){
         };
     })
 }
-let currentHatch = (async () => { })();
-let autoHatch = true;
+currentHatch = -1;
+autoHatch = true;
 
 
 /*
     App.game.breeding.addPokemonToHatchery(PokedexHelper.getList().filter(p=>p.id == 113)[0])
-
-    const egg = this.createEgg(pokemon.id);
-    const success = this.gainEgg(egg, eggSlot);
-
-    if (
-        BreedingController.regionalAttackDebuff() > -1 
-    && PokemonHelper.calcNativeRegion(pokemon.name) !== BreedingController.regionalAttackDebuff()
-    ) {
-        return App.game.party.getRegionAttackMultiplier();
-    }
-
-
 */
 
 async function hatch_stop() {
     autoHatch = false;
-    await currentHatch;
+    clearTimeout(currentHatch);
     autoHatch = true;
 }
 
+hatch_filler = () => {
+    let tickSpeed = 100;
+    let getFilterList = () => App.game.party.caughtPokemon.filter(x => !x._breeding()).filter(x => x._level() == 100);
+    let addPokemonToHatchery = (arr, reducer) => arr[0] ? App.game.breeding.addPokemonToHatchery(arr.reduce(reducer)) || true : false;
+    let weakest = (a, b) => a.attack < b.attack ? a : b;
 
-hatch_start = async()=> {
-    let breedLimit = 150;
+    hatch_stop();
+    let f = (async () => {
+        if (!autoHatch) { return; }
+        if (App.game.breeding.queueList().length < 2) { 
+            addPokemonToHatchery(getFilterList(), weakest)
+        }
+        currentHatch = setTimeout(f, tickSpeed);
+    });
+
+    f();
+}
+
+hatch_start = () => {
+    let breedLimit = 200;
     let tickSpeed = 100;
     let getHatched = poke => App.game.statistics.pokemonHatched[poke.id]();
-    let getEff = poke => App.game.party.caughtPokemon.filter(p=>poke.id ==p.id)[0].breedingEfficiency();
+    let getEff = poke => App.game.party.caughtPokemon.filter(p => poke.id == p.id)[0].breedingEfficiency();
     let getMulti = poke => BreedingController.calculateRegionalMultiplier(poke);
-    let maxVitamins = () => (player.highestRegion() + 1) * 5 ;
-    let forMega = poke =>(PokemonHelper.hasMegaEvolution(poke.name) && (poke.totalVitaminsUsed()>=maxVitamins())&&(poke.baseAttack *500 > poke.attack));
-    let isShadow = poke =>(poke.shadow>0 );
-    let isNotShadow = poke =>(poke.shadow === 0 );
+    let maxVitamins = () => (player.highestRegion() + 1) * 5;
+    let forMega = poke => (PokemonHelper.hasMegaEvolution(poke.name) && (poke.totalVitaminsUsed() >= maxVitamins()) && (poke.baseAttack * 500 > poke.attack));
+    let isShadow = poke => (poke.shadow > 0);
+    let isNotShadow = poke => (poke.shadow === 0);
+    let isMagikarp = poke => (poke.id >= 129 && poke.id < 130 && poke.totalVitaminsUsed() >= maxVitamins());
+    let isXerneas = poke => (poke.id === 716 && poke.attack < 26_000);
     let hatchEffP = (a, b) => getEff(a) * getMulti(a) > getEff(b) * getMulti(b) ? a : b;
-    let hatchEff = (a, b) => {
-        if (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) {
-            return hatchNo(a,b);
-        }  
-        return getEff(a)*getMulti(a) > getEff(b)*getMulti(b) ? a : b;
-    };
+    let hatchNo = (a, b) => getHatched(a) <= getHatched(b) ? a : b;
+    let hatchEff = (a, b) => (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) ? hatchNo(a, b) : hatchEffP(a, b);
 
-    let hatchNo = (a, b) => {
-        if (getHatched(a) != getHatched(b)) {
-            return getHatched(a) < getHatched(b) ? a : b;
+    let getFilterList = () => App.game.party.caughtPokemon.filter(x => !x._breeding()).filter(x => x._level() == 100);
+    let addPokemonToHatchery = (arr, reducer) => arr[0] ? App.game.breeding.addPokemonToHatchery(arr.reduce(reducer)) || true : false;
+
+    hatch_stop();
+    let f = (async () => {
+        if (!autoHatch) { return; }
+        if (App.game.breeding.queueList().length < 2) { 
+            addPokemonToHatchery(getFilterList().filter(isXerneas), hatchEff) || addPokemonToHatchery(getFilterList().filter(isMagikarp), hatchEff);
+            addPokemonToHatchery(getFilterList().filter(forMega), hatchEffP);
+            (!App.game.purifyChamber.canPurify()) && addPokemonToHatchery(getFilterList().filter(isShadow), hatchEff);
+            addPokemonToHatchery(getFilterList(), hatchEff);    
         }
-        return a.id > b.id ? a : b;
-    };
-
-    await hatch_stop();
-    currentHatch = (async () => {
-        while (autoHatch) {
-            await new Promise(resolve => setTimeout(resolve, tickSpeed));
-            if (App.game.breeding.queueList().length >= 2) { continue;}
-            
-            let getFilterList = () => App.game.party.caughtPokemon
-                .filter(x => !x._breeding())
-                .filter(x => x._level() == 100);
-
-            if (getFilterList().filter(forMega).length > 0){
-                App.game.breeding.addPokemonToHatchery(
-                    getFilterList().filter(forMega).reduce(hatchEffP)
-                );
-            } 
-            if (!App.game.purifyChamber.canPurify() && getFilterList().filter(isShadow).length > 0){
-                App.game.breeding.addPokemonToHatchery(
-                    getFilterList().filter(isShadow).reduce(hatchEff)
-                );
-            }
-            App.game.breeding.addPokemonToHatchery(
-                getFilterList().reduce(hatchEff)
-            );
-        }
-    })();
+        currentHatch = setTimeout(f, tickSpeed);
+    });
+    f();
 }
 
 hatch_start();
+
 let currentRoute = (async () => { })();
 let autoRoute = true;
 
@@ -681,15 +668,14 @@ gym_until= async (target) => {
 //         }
 //     })(target);
 // }
-let shopper = (async () => { })();
-let shopping = true;
+shopper = -1;
+shopping = true;
 
 
 async function shop_stop(){
     shopping = false;
-    await shopper;
+    clearTimeout(shopper);
     shopping = true;
-
 }
 
 shop_start = async () => {
@@ -700,70 +686,88 @@ shop_start = async () => {
     let MULCH_LIMIT = 2000;
     let SHOVEL_LIMIT = 100;
 
-    shopper = (async () => {
+    let getCashAmt =() => App.game.wallet.currencies[0];
+    let getFarmPt  =() => App.game.wallet.currencies[4];
+    let getPrice = ind => ShopHandler.shopObservable().items[ind].price();
+    let getBasePrice = ind => ShopHandler.shopObservable().items[ind].basePrice;
+    let isBasePrice = ind => getPrice(ind) === getBasePrice(ind);
+    let getPokeNo = ind => App.game.pokeballs.pokeballs[ind].quantity();
+    let f = (async () => {
+        if (!shopping){return;}
 
-        let getCashAmt = App.game.wallet.currencies[0];
-        let getFarmPt = App.game.wallet.currencies[4];
-
-        let getPrice = ind => ShopHandler.shopObservable().items[ind].price();
-        let getBasePrice = ind => ShopHandler.shopObservable().items[ind].basePrice;
-        let isBasePrice = ind => getPrice(ind) === getBasePrice(ind);
-        let getPokeNo = ind => App.game.pokeballs.pokeballs[ind].quantity();
-
-        while (shopping){
+        for (let i = 0; i <= 2; i++) {
             ShopHandler.showShop(pokeMartShop)
-            for (let i = 0; i <= 2; i++) {
-                while (isBasePrice(i) &&
-                    getCashAmt() >= getPrice(i) &&
-                    getPokeNo(i) < POKEBALL_LIMIT
-                ) {
-                    ShopHandler.setSelected(i);
-                    ShopHandler.buyItem();
-                }
-            }
-
-            for (let i = 3; i <= 8; i++) {
-                while (isBasePrice(i) &&
-                    getCashAmt() >= getPrice(i) &&
-                    player.itemList[ShopHandler.shopObservable().items[i].name]() < ITEM_LIMIT 
-                ) {
-                    ShopHandler.setSelected(i);
-                    ShopHandler.buyItem();
-                }
-            }
-
-            for (let i = 0; i < 6; i++) {
-                ShopHandler.showShop(DriftveilBerryMaster);
-                while(isBasePrice(i) &&
-                    getFarmPt() >= getPrice(i) &&
-                    App.game.farming.mulchList[i]() <= MULCH_LIMIT
-                ){
-                    ShopHandler.setSelected(i);
-                    ShopHandler.buyItem();
-                }
-            }
-
-            ShopHandler.showShop(DriftveilBerryMaster);
-            while (isBasePrice(6) &&
-                getFarmPt() >= getPrice(6) &&
-                App.game.farming.shovelAmt() < SHOVEL_LIMIT
+            while (isBasePrice(i) &&
+                getCashAmt() >= getPrice(i) &&
+                getPokeNo(i) < POKEBALL_LIMIT
             ) {
-                ShopHandler.setSelected(6);
+                ShopHandler.setSelected(i);
                 ShopHandler.buyItem();
             }
-            
-            while (isBasePrice(7) &&
-                getFarmPt() >= getPrice(7) &&
-                App.game.farming.mulchShovelAmt() < SHOVEL_LIMIT
-            ) {
-                ShopHandler.setSelected(7);
-                ShopHandler.buyItem();
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
         }
-    })()
+
+        for (let i = 3; i <= 8; i++) {
+            ShopHandler.showShop(pokeMartShop)
+            while (isBasePrice(i) &&
+                getCashAmt() >= getPrice(i) &&
+                player.itemList[ShopHandler.shopObservable().items[i].name]() < ITEM_LIMIT 
+            ) {
+                ShopHandler.setSelected(i);
+                ShopHandler.buyItem();
+            }
+        }
+
+        for (let i = 0; i < 6; i++) {
+            ShopHandler.showShop(DriftveilBerryMaster);
+            while(isBasePrice(i) &&
+                getFarmPt() >= getPrice(i) &&
+                App.game.farming.mulchList[i]() <= MULCH_LIMIT
+            ){
+                ShopHandler.setSelected(i);
+                ShopHandler.buyItem();
+            }
+        }
+
+        ShopHandler.showShop(DriftveilBerryMaster);
+        while (isBasePrice(6) &&
+            getFarmPt() >= getPrice(6) &&
+            App.game.farming.shovelAmt() < SHOVEL_LIMIT
+        ) {
+            ShopHandler.setSelected(6);
+            ShopHandler.buyItem();
+        }
+        
+        ShopHandler.showShop(DriftveilBerryMaster);
+        while (isBasePrice(7) &&
+            getFarmPt() >= getPrice(7) &&
+            App.game.farming.mulchShovelAmt() < SHOVEL_LIMIT
+        ) {
+            ShopHandler.setSelected(7);
+            ShopHandler.buyItem();
+        }
+
+        shopper = setTimeout(f, 1000);
+    })
+    shopper = f();
 }
 
 
 shop_start();
+MINE_TICK = 100;
+
+autoMine = true;
+
+function mine_stop() {
+    autoMine = false;
+}
+
+mine_bomb = () => {
+    let isBomb = () => App.game.underground.tools._selectedToolType() === 2;
+    let isIncomplete = () => !App.game.underground._mine()._completed();
+    if (!autoMine) { return; }
+    if (!isBomb()) { return; }
+    if (isIncomplete()) {
+        UndergroundController.clickModalMineSquare(0);
+    }
+    setTimeout(mine_bomb, MINE_TICK);
+}

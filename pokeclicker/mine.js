@@ -1,40 +1,18 @@
+MINE_TICK = 100;
 
-//cheat
-javascript:(function(){
-    for (let y = 0; y < Mine.rewardGrid.length; y++) {
-        let line = "";
-        for (let x = 0; x < Mine.rewardGrid[0].length; x++) {
-            if (Mine.rewardGrid[y][x] !=0){
-                Mine.breakTile(y,x,5);
-            }
-        }
-    };
-    })();
-    
-//legit chisel
-javascript:(function(){
-    for (let y = 0; y < Mine.rewardGrid.length; y++) {
-        let line = "";
-        for (let x = 0; x < Mine.rewardGrid[0].length; x++) {
-            if (Mine.rewardGrid[y][x] !=0){
-                Mine.chisel(y,x);
-            }
-        }
-    };
-})();
+autoMine = true;
 
+function mine_stop() {
+    autoMine = false;
+}
 
-//map
-javascript:(function(){
-    for (let y = 0; y < Mine.rewardGrid.length; y++) {
-        let line = "";
-        for (let x = 0; x < Mine.rewardGrid[0].length; x++) {
-            if (Mine.rewardGrid[y][x] !=0){
-                line+="X";
-            } else {
-                line += x%10;
-            }
-        }
-        console.log(line);
-    };
-})();
+mine_bomb = () => {
+    let isBomb = () => App.game.underground.tools._selectedToolType() === 2;
+    let isIncomplete = () => !App.game.underground._mine()._completed();
+    if (!autoMine) { return; }
+    if (!isBomb()) { return; }
+    if (isIncomplete()) {
+        UndergroundController.clickModalMineSquare(0);
+    }
+    setTimeout(mine_bomb, MINE_TICK);
+}

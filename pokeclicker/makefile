@@ -6,7 +6,8 @@ JS_SOURCES 	:= 	berry.js \
 				hatchery.js \
 				poke.js \
 				gym.js \
-				shopping.js
+				shopping.js \
+				mine.js
 
 all:
 	grep -h -v '^import.*;' $(JS_SOURCES) > $(JS_TARGET)
