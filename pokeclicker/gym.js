@@ -8,7 +8,7 @@ async function gym_stop() {
     autoGym = true;
 }
 
-itemIfLess = async (name) => {
+itemIfLess = (name) => {
     let timeBase = player.effectTimer[name]();
     let blockNo = timeBase.split(":").length;
     if (timeBase == "") { blockNo = 0; }
@@ -25,7 +25,6 @@ itemIfLess = async (name) => {
 
     if (target <= 60) {
         ItemHandler.useItem(name, 2);
-        await new Promise(resolve => setTimeout(resolve, 1));
     }
 }
 
@@ -70,29 +69,3 @@ gym_until= async (target) => {
         }
     })(target);
 }
-
-// async function gym_region(target) {
-//     await gym_stop();
-//     currentGym = (async (target) => {
-//         let gymArr = [
-//             ...GameConstants.KantoGyms,
-//             // ...GameConstants.JohtoGyms,
-//             // ...GameConstants.HoennGyms,
-//             // ...GameConstants.SinnohGyms,
-//             //...GameConstants.UnovaGyms,
-//             // ...GameConstants.KalosGyms,
-//         ].map(x=>GymList[x]);
-//         for (let index = 0; index < gymArr.length; index++) {
-//             while (target > App.game.statistics.gymsDefeated[GameConstants.getGymIndex(gymArr[index].town)]()) {
-//                 if (!autoGym) {break;}
-//                 GymRunner.startGym(gymArr[index], false, false);
-//                 while (GymBattle.index() < Math.min(6,GymBattle.gym.pokemons.length)) {
-//                     if (GymBattle.enemyPokemon().health()>0){
-//                         GymBattle.clickAttack();
-//                     }
-//                     await new Promise(resolve => setTimeout(resolve, GymTick));
-//                 }
-//             }
-//         }
-//     })(target);
-// }

@@ -4,6 +4,10 @@ let currentFarm = (async () => { })();
 let autoFarm = true;
 let BerryTick = 100;
 
+class LocalFarmUtil{
+       
+}
+
 async function farm_stop() {
     autoFarm = false;
     await currentFarm;
@@ -16,7 +20,9 @@ async function farm_clear() {
         while (true) {
             if (!autoFarm) { break; }
             App.game.farming.harvestAll();
-            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
+            App.game.farming.plotList
+                .filter(plot => plot._wanderer())
+                .map(plot => App.game.farming.handleWanderer(plot));
             await new Promise(resolve => setTimeout(resolve, BerryTick));
         }
     })();
@@ -29,7 +35,9 @@ async function farm_uniformFarm(BerryType_var) {
             if (!autoFarm) { break; }
             App.game.farming.harvestAll();
             App.game.farming.plantAll(BerryType_var);
-            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
+            App.game.farming.plotList
+                .filter(plot => plot._wanderer())
+                .map(plot => App.game.farming.handleWanderer(plot));
             await new Promise(resolve => setTimeout(resolve, BerryTick));
         }
     })();
@@ -39,20 +47,38 @@ async function farm_cheriFarm() {
     await farm_uniformFarm(BerryType.Cheri);
 }
 
-async function farm_uniformFarm2(BerryType_var) {
+async function farm_uniformAlive(BerryType_var) {
     await farm_stop();
     currentFarm = (async () => {
         while (true) {
             if (!autoFarm) { break; }
+            App.game.farming.plotList
+                .filter(plot => !plot.isSafeLocked)
+                .filter(plot => plot._hasWarnedAboutToWither)
+                .map(plot => App.game.farming.harvest(plot.index));
+            App.game.farming.plotList
+                .filter(plot => plot._wanderer())
+                .map(plot => App.game.farming.handleWanderer(plot));
             App.game.farming.plantAll(BerryType_var);
             await new Promise(resolve => setTimeout(resolve, BerryTick));
         }
     })();
 }
 
-async function farm_cheriFarm2() {
-    await farm_uniformFarm2(BerryType.Cheri);
+async function farm_uniformWither(BerryType_var) {
+    await farm_stop();
+    currentFarm = (async () => {
+        while (true) {
+            if (!autoFarm) { break; }
+            App.game.farming.plotList
+                .filter(plot => plot._wanderer())
+                .map(plot => App.game.farming.handleWanderer(plot));
+            App.game.farming.plantAll(BerryType_var);
+            await new Promise(resolve => setTimeout(resolve, BerryTick));
+        }
+    })();
 }
+
 
 farm_loop = async (target) => {
     await farm_stop();

@@ -20,6 +20,35 @@ async function route_shinyWander(limit) {
     })();
 }
 
+async function route_rus() {
+    let hasRus = () => (
+        App.game.party.caughtPokemon
+        .filter(x => RouteHelper.getAvailablePokemonList(player.route, player.region, false).includes(x.name))
+        .filter(x => x.pokerus !== 3)
+        .length > 0
+    );
+    let isRus = () => (
+        App.game.party.caughtPokemon
+        .filter(x => x.id === Battle.enemyPokemon().id)
+        .filter(x => x._pokerus() === 3)
+        .length === 1
+    );
+    let isnotShiny = () => !Battle.enemyPokemon().shiny;
+    await route_stop();
+    currentRoute = (async () => {
+        while (autoRoute && hasRus()) {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            // while enemy is not fully rused, generate new enemy
+            while (hasRus() && isRus() && isnotShiny()){ Battle.generateNewEnemy(); }
+            await itemIfLess("xAttack");
+            await itemIfLess("Lucky_egg");
+            await itemIfLess("Token_collector");
+            await itemIfLess("Dowsing_machine");
+            await itemIfLess("Lucky_incense");
+        }
+    })();
+}
+
 async function route_name(pokeName) {
     await route_stop();
     currentRoute = (async () => {

@@ -3,6 +3,10 @@ let currentFarm = (async () => { })();
 let autoFarm = true;
 let BerryTick = 100;
 
+class LocalFarmUtil{
+       
+}
+
 async function farm_stop() {
     autoFarm = false;
     await currentFarm;
@@ -15,7 +19,9 @@ async function farm_clear() {
         while (true) {
             if (!autoFarm) { break; }
             App.game.farming.harvestAll();
-            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
+            App.game.farming.plotList
+                .filter(plot => plot._wanderer())
+                .map(plot => App.game.farming.handleWanderer(plot));
             await new Promise(resolve => setTimeout(resolve, BerryTick));
         }
     })();
@@ -28,7 +34,9 @@ async function farm_uniformFarm(BerryType_var) {
             if (!autoFarm) { break; }
             App.game.farming.harvestAll();
             App.game.farming.plantAll(BerryType_var);
-            App.game.farming.plotList.filter(plot => plot._wanderer()).map(plot => App.game.farming.handleWanderer(plot));
+            App.game.farming.plotList
+                .filter(plot => plot._wanderer())
+                .map(plot => App.game.farming.handleWanderer(plot));
             await new Promise(resolve => setTimeout(resolve, BerryTick));
         }
     })();
@@ -38,20 +46,38 @@ async function farm_cheriFarm() {
     await farm_uniformFarm(BerryType.Cheri);
 }
 
-async function farm_uniformFarm2(BerryType_var) {
+async function farm_uniformAlive(BerryType_var) {
     await farm_stop();
     currentFarm = (async () => {
         while (true) {
             if (!autoFarm) { break; }
+            App.game.farming.plotList
+                .filter(plot => !plot.isSafeLocked)
+                .filter(plot => plot._hasWarnedAboutToWither)
+                .map(plot => App.game.farming.harvest(plot.index));
+            App.game.farming.plotList
+                .filter(plot => plot._wanderer())
+                .map(plot => App.game.farming.handleWanderer(plot));
             App.game.farming.plantAll(BerryType_var);
             await new Promise(resolve => setTimeout(resolve, BerryTick));
         }
     })();
 }
 
-async function farm_cheriFarm2() {
-    await farm_uniformFarm2(BerryType.Cheri);
+async function farm_uniformWither(BerryType_var) {
+    await farm_stop();
+    currentFarm = (async () => {
+        while (true) {
+            if (!autoFarm) { break; }
+            App.game.farming.plotList
+                .filter(plot => plot._wanderer())
+                .map(plot => App.game.farming.handleWanderer(plot));
+            App.game.farming.plantAll(BerryType_var);
+            await new Promise(resolve => setTimeout(resolve, BerryTick));
+        }
+    })();
 }
+
 
 farm_loop = async (target) => {
     await farm_stop();
@@ -416,7 +442,6 @@ async function temp_fight(){
 currentHatch = -1;
 autoHatch = true;
 
-
 /*
     App.game.breeding.addPokemonToHatchery(PokedexHelper.getList().filter(p=>p.id == 113)[0])
 */
@@ -429,23 +454,62 @@ async function hatch_stop() {
 
 hatch_filler = () => {
     let tickSpeed = 100;
-    let getFilterList = () => App.game.party.caughtPokemon.filter(x => !x._breeding()).filter(x => x._level() == 100);
+    let getFilterList = () => App.game.party.caughtPokemon.filter(x => !x._breeding()).filter(x => x._level() == 100).filter(x => x._pokerus() !== 0);
     let addPokemonToHatchery = (arr, reducer) => arr[0] ? App.game.breeding.addPokemonToHatchery(arr.reduce(reducer)) || true : false;
     let weakest = (a, b) => a.attack < b.attack ? a : b;
 
     hatch_stop();
-    let f = (async () => {
+    let f = () => {
         if (!autoHatch) { return; }
         if (App.game.breeding.queueList().length < 2) { 
             addPokemonToHatchery(getFilterList(), weakest)
         }
         currentHatch = setTimeout(f, tickSpeed);
-    });
+    };
 
     f();
 }
 
 hatch_start = () => {
+    let breedRatio = 100;
+    let megaRatio = 500;
+    let breedLimit = 500;
+    let tickSpeed = 100;
+    let getHatched = poke => App.game.statistics.pokemonHatched[poke.id]();
+    let getEff = poke => App.game.party.caughtPokemon.filter(p => poke.id == p.id)[0].breedingEfficiency();
+    let getMulti = poke => BreedingController.calculateRegionalMultiplier(poke);
+    let maxVitamins = () => (player.highestRegion() + 1) * 5;
+
+    // filters
+    let hasRatio = (poke,ratio) => poke.baseAttack * ratio > poke.attack;
+    let forMega = poke => (PokemonHelper.hasMegaEvolution(poke.name) && (poke.totalVitaminsUsed() >= maxVitamins()) && hasRatio(poke,megaRatio));
+    let isShadow = poke => (poke.shadow > 0);
+    let isNotShadow = poke => (poke.shadow === 0);
+    let isMagikarp = poke => (poke.id >= 129 && poke.id < 130 && poke.totalVitaminsUsed() >= maxVitamins());
+    let isXerneas = poke => (poke.id === 716 && poke.attack < 26_000);
+
+    // reducers
+    let hatchEffP = (a, b) => getEff(a) * getMulti(a) > getEff(b) * getMulti(b) ? a : b;
+    let hatchNo = (a, b) => getHatched(a) <= getHatched(b) ? a : b;
+    let hatchEff = (a, b) => (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) ? hatchNo(a, b) : hatchEffP(a, b);
+
+    let getFilterList = () => App.game.party.caughtPokemon.filter(x => !x._breeding()).filter(x => x._level() == 100).filter(x => x._pokerus() !== 0);
+    let addPokemonToHatchery = (arr, reducer) => arr[0] ? App.game.breeding.addPokemonToHatchery(arr.reduce(reducer)) || true : false;
+
+    hatch_stop();
+    let f = () => {
+        if (!autoHatch) { return; }
+        if (App.game.breeding.queueList().length < 2) { 
+            addPokemonToHatchery(getFilterList().filter(forMega), hatchEffP) || addPokemonToHatchery(getFilterList().filter(isMagikarp), hatchEff);
+            // (!App.game.purifyChamber.canPurify()) && addPokemonToHatchery(getFilterList().filter(isShadow), hatchEff);
+            addPokemonToHatchery(getFilterList().filter((poke) => hasRatio(poke,100)), hatchEffP);    
+        }
+        currentHatch = setTimeout(f, tickSpeed);
+    };
+    f();
+}
+
+hatch_magikarp = () => {
     let breedLimit = 200;
     let tickSpeed = 100;
     let getHatched = poke => App.game.statistics.pokemonHatched[poke.id]();
@@ -461,20 +525,20 @@ hatch_start = () => {
     let hatchNo = (a, b) => getHatched(a) <= getHatched(b) ? a : b;
     let hatchEff = (a, b) => (getHatched(a) >= breedLimit || getHatched(b) >= breedLimit) ? hatchNo(a, b) : hatchEffP(a, b);
 
-    let getFilterList = () => App.game.party.caughtPokemon.filter(x => !x._breeding()).filter(x => x._level() == 100);
+    let getFilterList = () => App.game.party.caughtPokemon.filter(x => !x._breeding()).filter(x => x._level() == 100).filter(x => x._pokerus() !== 0);
     let addPokemonToHatchery = (arr, reducer) => arr[0] ? App.game.breeding.addPokemonToHatchery(arr.reduce(reducer)) || true : false;
 
     hatch_stop();
-    let f = (async () => {
+    let f = () => {
         if (!autoHatch) { return; }
-        if (App.game.breeding.queueList().length < 2) { 
-            addPokemonToHatchery(getFilterList().filter(isXerneas), hatchEff) || addPokemonToHatchery(getFilterList().filter(isMagikarp), hatchEff);
-            addPokemonToHatchery(getFilterList().filter(forMega), hatchEffP);
-            (!App.game.purifyChamber.canPurify()) && addPokemonToHatchery(getFilterList().filter(isShadow), hatchEff);
-            addPokemonToHatchery(getFilterList(), hatchEff);    
+        if (App.game.breeding.queueList().length < 2) {
+            addPokemonToHatchery(getFilterList().filter(isMagikarp), hatchEff) ||
+            addPokemonToHatchery(getFilterList().filter(forMega), hatchEffP) ||
+            (!App.game.purifyChamber.canPurify()) && addPokemonToHatchery(getFilterList().filter(isShadow), hatchEff)||
+            addPokemonToHatchery(getFilterList(), hatchEff);
         }
         currentHatch = setTimeout(f, tickSpeed);
-    });
+    };
     f();
 }
 
@@ -498,6 +562,35 @@ async function route_shinyWander(limit) {
             while (keep()) { await new Promise(resolve => setTimeout(resolve, 1000)) }
             while (!keep()) { Battle.generateNewEnemy(); }
             limit--;
+        }
+    })();
+}
+
+async function route_rus() {
+    let hasRus = () => (
+        App.game.party.caughtPokemon
+        .filter(x => RouteHelper.getAvailablePokemonList(player.route, player.region, false).includes(x.name))
+        .filter(x => x.pokerus !== 3)
+        .length > 0
+    );
+    let isRus = () => (
+        App.game.party.caughtPokemon
+        .filter(x => x.id === Battle.enemyPokemon().id)
+        .filter(x => x._pokerus() === 3)
+        .length === 1
+    );
+    let isnotShiny = () => !Battle.enemyPokemon().shiny;
+    await route_stop();
+    currentRoute = (async () => {
+        while (autoRoute && hasRus()) {
+            await new Promise(resolve => setTimeout(resolve, 1));
+            // while enemy is not fully rused, generate new enemy
+            while (hasRus() && isRus() && isnotShiny()){ Battle.generateNewEnemy(); }
+            await itemIfLess("xAttack");
+            await itemIfLess("Lucky_egg");
+            await itemIfLess("Token_collector");
+            await itemIfLess("Dowsing_machine");
+            await itemIfLess("Lucky_incense");
         }
     })();
 }
@@ -580,7 +673,7 @@ async function gym_stop() {
     autoGym = true;
 }
 
-itemIfLess = async (name) => {
+itemIfLess = (name) => {
     let timeBase = player.effectTimer[name]();
     let blockNo = timeBase.split(":").length;
     if (timeBase == "") { blockNo = 0; }
@@ -597,7 +690,6 @@ itemIfLess = async (name) => {
 
     if (target <= 60) {
         ItemHandler.useItem(name, 2);
-        await new Promise(resolve => setTimeout(resolve, 1));
     }
 }
 
@@ -642,40 +734,15 @@ gym_until= async (target) => {
         }
     })(target);
 }
-
-// async function gym_region(target) {
-//     await gym_stop();
-//     currentGym = (async (target) => {
-//         let gymArr = [
-//             ...GameConstants.KantoGyms,
-//             // ...GameConstants.JohtoGyms,
-//             // ...GameConstants.HoennGyms,
-//             // ...GameConstants.SinnohGyms,
-//             //...GameConstants.UnovaGyms,
-//             // ...GameConstants.KalosGyms,
-//         ].map(x=>GymList[x]);
-//         for (let index = 0; index < gymArr.length; index++) {
-//             while (target > App.game.statistics.gymsDefeated[GameConstants.getGymIndex(gymArr[index].town)]()) {
-//                 if (!autoGym) {break;}
-//                 GymRunner.startGym(gymArr[index], false, false);
-//                 while (GymBattle.index() < Math.min(6,GymBattle.gym.pokemons.length)) {
-//                     if (GymBattle.enemyPokemon().health()>0){
-//                         GymBattle.clickAttack();
-//                     }
-//                     await new Promise(resolve => setTimeout(resolve, GymTick));
-//                 }
-//             }
-//         }
-//     })(target);
-// }
-shopper = -1;
-shopping = true;
+let shopper = (async () => { })();
+let shopping = true;
 
 
 async function shop_stop(){
     shopping = false;
-    clearTimeout(shopper);
+    await shopper;
     shopping = true;
+
 }
 
 shop_start = async () => {
@@ -686,88 +753,97 @@ shop_start = async () => {
     let MULCH_LIMIT = 2000;
     let SHOVEL_LIMIT = 100;
 
-    let getCashAmt =() => App.game.wallet.currencies[0];
-    let getFarmPt  =() => App.game.wallet.currencies[4];
+    let getCashAmt = () => App.game.wallet.currencies[0]();
+    let getQuestPt = () => App.game.wallet.currencies[1]();
+    let getFarmPt = () => App.game.wallet.currencies[4]();
+
     let getPrice = ind => ShopHandler.shopObservable().items[ind].price();
     let getBasePrice = ind => ShopHandler.shopObservable().items[ind].basePrice;
     let isBasePrice = ind => getPrice(ind) === getBasePrice(ind);
-    let getPokeNo = ind => App.game.pokeballs.pokeballs[ind].quantity();
-    let f = (async () => {
-        if (!shopping){return;}
+    let setAndBuy = (i) => {ShopHandler.setSelected(i); ShopHandler.buyItem();}
 
-        for (let i = 0; i <= 2; i++) {
-            ShopHandler.showShop(pokeMartShop)
-            while (isBasePrice(i) &&
-                getCashAmt() >= getPrice(i) &&
-                getPokeNo(i) < POKEBALL_LIMIT
-            ) {
-                ShopHandler.setSelected(i);
-                ShopHandler.buyItem();
-            }
-        }
+    let getPokeBallCount = ind => App.game.pokeballs.pokeballs[ind].quantity();
+    let buyBall = (i,limit) => {
+        ShopHandler.showShop(pokeMartShop);
+        isBasePrice(i) && getCashAmt() >= getPrice(i) && getPokeBallCount(i) < limit && setAndBuy(i);
+    };
+    let buyBeast = (limit) => {
+        ShopHandler.showShop(RoadsideMotelShop);
+        isBasePrice(0) && getQuestPt() >= getPrice(0) && getPokeBallCount(13) < limit && setAndBuy(0);
+    }
 
-        for (let i = 3; i <= 8; i++) {
-            ShopHandler.showShop(pokeMartShop)
-            while (isBasePrice(i) &&
-                getCashAmt() >= getPrice(i) &&
-                player.itemList[ShopHandler.shopObservable().items[i].name]() < ITEM_LIMIT 
-            ) {
-                ShopHandler.setSelected(i);
-                ShopHandler.buyItem();
-            }
-        }
+    let getItemCount = (i) => player.itemList[ShopHandler.shopObservable().items[i].name]();
+    let buyItem = (i,limit) => {
+        ShopHandler.showShop(pokeMartShop);
+        isBasePrice(i) && getCashAmt() >= getPrice(i) && getItemCount(i) < limit && setAndBuy(i);
+    };
 
-        for (let i = 0; i < 6; i++) {
-            ShopHandler.showShop(DriftveilBerryMaster);
-            while(isBasePrice(i) &&
-                getFarmPt() >= getPrice(i) &&
-                App.game.farming.mulchList[i]() <= MULCH_LIMIT
-            ){
-                ShopHandler.setSelected(i);
-                ShopHandler.buyItem();
-            }
-        }
-
+    let buyMulch = (i,limit) => {
         ShopHandler.showShop(DriftveilBerryMaster);
-        while (isBasePrice(6) &&
-            getFarmPt() >= getPrice(6) &&
-            App.game.farming.shovelAmt() < SHOVEL_LIMIT
-        ) {
-            ShopHandler.setSelected(6);
-            ShopHandler.buyItem();
-        }
-        
+        isBasePrice(i) && getFarmPt() >= getPrice(i) && App.game.farming.mulchList[i]() <= limit && setAndBuy(i);
+    }
+    let buyShovel = (limit) => {
         ShopHandler.showShop(DriftveilBerryMaster);
-        while (isBasePrice(7) &&
-            getFarmPt() >= getPrice(7) &&
-            App.game.farming.mulchShovelAmt() < SHOVEL_LIMIT
-        ) {
-            ShopHandler.setSelected(7);
-            ShopHandler.buyItem();
-        }
+        isBasePrice(6) && getFarmPt() >= getPrice(6) && App.game.farming.shovelAmt() < limit && setAndBuy(6);
+    }
+    let buyMulchShovel = (limit) => {
+        ShopHandler.showShop(DriftveilBerryMaster);
+        isBasePrice(7) && getFarmPt() >= getPrice(7) && App.game.farming.mulchShovelAmt() < limit && setAndBuy(7);
+    }
 
-        shopper = setTimeout(f, 1000);
-    })
-    shopper = f();
+    shopper = (async () => {
+
+        while (shopping){
+            buyBeast(10); // beast ball
+
+            buyBall(0, POKEBALL_LIMIT); // poke ball
+            buyBall(1, POKEBALL_LIMIT); // great ball
+            buyBall(2, POKEBALL_LIMIT); // ultra ball
+
+            buyItem(3, ITEM_LIMIT); // X attack
+            buyItem(4, ITEM_LIMIT); // X Click
+            buyItem(5, ITEM_LIMIT); // Lucky Egg
+
+            buyItem(6, ITEM_LIMIT); // Token Collector
+            buyItem(7, ITEM_LIMIT); // Dowsing Machine
+            buyItem(8, ITEM_LIMIT); // Lucky Incense
+
+            buyMulch(0, 10*MULCH_LIMIT); // boost mulch
+            buyMulch(1, MULCH_LIMIT); // rich mulch
+            buyMulch(2, MULCH_LIMIT); // surprise mulch
+            buyMulch(3, MULCH_LIMIT); // amaze mulch
+            buyMulch(4, MULCH_LIMIT); // freeze mulch  
+            buyMulch(5, MULCH_LIMIT); // gooey mulch
+
+            buyShovel(SHOVEL_LIMIT); // shovel
+            buyMulchShovel(SHOVEL_LIMIT); // mulch shovel
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+    })()
 }
 
-
 shop_start();
-MINE_TICK = 100;
+MINE_TICK = 10;
 
 autoMine = true;
-
+currentMine = -1;
 function mine_stop() {
     autoMine = false;
 }
 
 mine_bomb = () => {
+    clearTimeout(currentMine);
     let isBomb = () => App.game.underground.tools._selectedToolType() === 2;
     let isIncomplete = () => !App.game.underground._mine()._completed();
     if (!autoMine) { return; }
     if (!isBomb()) { return; }
     if (isIncomplete()) {
         UndergroundController.clickModalMineSquare(0);
+        currentMine = setTimeout(mine_bomb, 10*MINE_TICK);
+    } else {
+        currentMine = setTimeout(mine_bomb, MINE_TICK);
     }
-    setTimeout(mine_bomb, MINE_TICK);
 }
+
+mine_bomb();
